@@ -5,7 +5,7 @@ try:
     doc = simpletable.__doc__
 except:
     doc = ""
-version = '0.2'
+version = '0.2.1'
 
 
 
@@ -16,8 +16,8 @@ setup(name          = 'simpletable',
       keywords      = 'hdf5 pytables tables numpy',
       author        = 'Brent Pedersen',
       author_email  = 'bpederse@gmail.com',
-      url   = 'http://bpbio.googlecode.com/',
-      download_url = 'http://bpbio.googlecode.com/svn/trunk/simpletable/',
+      url   = 'http://bitbucket.org/brentp/biostuff/',
+      download_url = 'http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
       long_description = doc,
       install_requires = ['tables'],
       zip_safe=False,

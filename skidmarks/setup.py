@@ -1,12 +1,11 @@
-from distutils.core import setup
 from setuptools import setup
 
-version="0.0.2"
+version="0.0.3"
 
 setup(name='skidmarks',
       version=version,
      description="find runs (non-randomness) in sequences",
-      url="http://code.google.com/p/bpbio/",
+      url="http://bitbucket.org/brentp/biostuff/",
       long_description=open('README.txt').read(),
       classifiers=["Topic :: Scientific/Engineering :: Bio-Informatics"],
       keywords='bioinformatics sequence randomness test',
