@@ -1,5 +1,8 @@
 .svn
+build/
+dist/
 
 syntax: glob
 *.pyc
 *.egg-info/
+*.so
