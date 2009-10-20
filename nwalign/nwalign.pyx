@@ -118,6 +118,7 @@ cdef inline size_t strpos(char *tstr, char check):
 
 
 @cython.boundscheck(False)
+@cython.nonecheck(False)
 cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismatch=-1, int gap_init=-1, object matrix=None):
     """
     perform a global sequence alignment (needleman-wunsch) on seq and and 2. using
@@ -169,9 +170,9 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
     agap[<size_t>0, <size_t>0] = zero
 
     for i in range(1, max_i + 1):
-        ci = seqi[i - 1]
+        ci = seqi[<size_t>(i - 1)]
         for j in range(1, max_j + 1):
-            cj = seqj[j - 1]
+            cj = seqj[<size_t>(j - 1)]
 
             if matrix is None:
                 diag_score = score[i - 1, j - 1] + (cj == ci and match or mismatch)
@@ -192,10 +193,10 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
                 else:
                     tscore = amatrix[ii, jj]
 
-                diag_score = score[i - 1, j - 1] + tscore
+                diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + tscore
 
-            up_score = score[i - 1, j] + (gap if agap[i - 1, j] == one else gap_init)
-            left_score   = score[i, j - 1] + (gap if agap[i, j - 1] == one else gap_init)
+            up_score = score[<size_t>(i - 1), <size_t>j] + (gap if agap[<size_t>(i - 1), j] == one else gap_init)
+            left_score   = score[<size_t>i, <size_t>(j - 1)] + (gap if agap[i, <size_t>(j - 1)] == one else gap_init)
             
             if diag_score >= up_score:
                 if diag_score >= left_score:

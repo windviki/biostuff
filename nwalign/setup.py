@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from distutils.extension import Extension
 #from Cython.Distutils import build_ext
 
-version = '0.1.1'
+version = '0.1.2'
 import numpy
 np_include = numpy.get_include()
 try:
@@ -11,6 +11,8 @@ try:
 except:
     doc = ""
 
+import os
+os.environ["CFLAGS"] = "-O3"
 setup(name='nwalign',
       version=version,
       description="Needleman-Wunsch global sequence alignment",
@@ -21,7 +23,7 @@ setup(name='nwalign',
                       include_dirs=[np_include, "."])],
       keywords='bioinformatics alignment needleman-wunsch',
       url='http://bitbucket.org/brentp/biostuff/',
-      download_url='http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
+      #download_url='http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
       author='brentp',
       author_email='bpederse@gmail.com',
       license='BSD',
