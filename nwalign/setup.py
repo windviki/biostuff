@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from distutils.extension import Extension
 #from Cython.Distutils import build_ext
 
-version = '0.1.2'
+version = '0.1.3'
 import numpy
 np_include = numpy.get_include()
 try:
