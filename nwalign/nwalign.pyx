@@ -73,10 +73,12 @@ cdef inline int imax2(int a, int b):
 
 
 @cython.boundscheck(False)
-def read_matrix(path):
+def read_matrix(path, cache={}):
+    if path in cache: return cache[path]
     cdef np.ndarray[DTYPE_INT, ndim=2] a
     cdef size_t ai = 0, i
     cdef int v
+
 
     #if os.path.basename(path) in MATRIX:
     #    import cPickle
@@ -106,7 +108,9 @@ def read_matrix(path):
         ai += 1
         line = fh.readline()
     assert ai == len(headers), (ai, len(headers))
-    return "".join(headers), a
+    result = "".join(headers), a
+    cache[path] = result
+    return result
 
 cdef inline size_t strpos(char *tstr, char check):
     cdef size_t i = 0

@@ -21,6 +21,10 @@ def test_gap_init():
     r = nw.global_align(s0, s1, gap=-2, gap_init=-10, matrix='BLOSUM62')
     assert r[0] == a0
     assert r[1] == a1
+    # using cached matrix.
+    r = nw.global_align(s0, s1, gap=-2, gap_init=-10, matrix='BLOSUM62')
+    assert r[0] == a0
+    assert r[1] == a1
 
 
 if __name__ == "__main__":
