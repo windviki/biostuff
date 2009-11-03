@@ -29,7 +29,7 @@ Usage
     ['chr1', 'chr2', 'chr3']
 
     >>> f['chr1']
-    FastaRecord('tests/data/three_chrs.fasta.flat', 0..80)
+    NpyFastaRecord('tests/data/three_chrs.fasta.flat.npy', 0..80)
 
 Slicing
 -------
@@ -86,4 +86,4 @@ Numpy Array Interface
     # cleanup (though for real use these will remain for faster access)
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
-    >>> os.unlink('tests/data/three_chrs.fasta.flat')
+    >>> os.unlink('tests/data/three_chrs.fasta.flat.npy')

@@ -21,6 +21,20 @@ class FastaRecord(object):
     def __len__(self):
         return self.stop - self.start
 
+    
+    def _adjust_slice(self, islice):
+        if not islice.start is None and islice.start < 0:
+            istart = self.stop + islice.start
+        else:
+            istart = self.start + (0 if islice.start is None else islice.start)
+
+
+        if not islice.stop is None and islice.stop < 0:
+            istop = self.stop + islice.stop
+        else:
+            istop = self.stop if islice.stop is None else (self.start + islice.stop)
+        return istart, istop
+
     def __getitem__(self, islice):
         fh = self.fh
         fh.seek(self.start)
@@ -35,19 +49,8 @@ class FastaRecord(object):
             if islice.step in (1, None):
                 return fh.read(self.stop - self.start)
             return fh.read(self.stop - self.start)[::islice.step]
-
-
-        if not islice.start is None and islice.start < 0:
-            istart = self.stop + islice.start
-        else:
-            istart = self.start + (0 if islice.start is None else islice.start)
-
-            
-
-        if not islice.stop is None and islice.stop < 0:
-            istop = self.stop + islice.stop
-        else:
-            istop = self.stop if islice.stop is None else (self.start + islice.stop)
+        
+        istart, istop = self._adjust_slice(islice)
 
         fh.seek(istart)
 
@@ -75,6 +78,47 @@ class FastaRecord(object):
             'data': buffer(self)
         }
 
+class NpyFastaRecord(FastaRecord):
+    def __init__(self, filename, start, stop, tostring=True):
+        self.filename = filename
+        self.mm = np.load(filename, mmap_mode="r")
+        self.start = start
+        self.stop = stop
+        self.tostring = tostring
+
+    def __repr__(self):
+        return "%s('%s', %i..%i)" % (self.__class__.__name__, self.filename,
+                                   self.start, self.stop)
+
+    def getdata(self, islice):
+        if isinstance(islice, (int, long)):
+            if islice > 0:
+                islice += self.start
+            else:
+                islice += self.stop
+            return self.mm[islice].tostring()
+
+        start, stop = self._adjust_slice(islice)
+        return self.mm[start:stop:islice.step]
+
+    def __getitem__(self, islice):
+        d = self.getdata(islice)
+        if self.tostring:
+            return d.tostring()
+        else:
+            return d
+
+    @property
+    def __array_interface__(self):
+        return {
+            'shape': (len(self), ),
+            'typestr': '|S1',
+            'version': 3,
+            'data': self[:]
+        }
+
+
+
 class Fasta(dict):
     def __init__(self, fasta_name):
         """
@@ -98,10 +142,14 @@ class Fasta(dict):
 
         """
         self.fasta_name = fasta_name
+        self.npy = False
         self.gdx = fasta_name + ".gdx"
         self.flat = fasta_name + ".flat"
         self.index = self.flatten()
-        self.fh = open(self.flat, 'rb')
+        if self.npy:
+            self.fh = self.flat
+        else:
+            self.fh = open(self.flat, 'rb')
 
         self.chr = {}
 
@@ -113,15 +161,22 @@ class Fasta(dict):
     def flatten(self):
         """remove all newlines from the sequence in a fasta file"""
 
-        if Fasta.is_up_to_date(self.gdx, self.fasta_name) \
-                     and Fasta.is_up_to_date(self.flat, self.fasta_name):
-            return Fasta._load_index(self.gdx)
+        if Fasta.is_up_to_date(self.gdx, self.fasta_name):
+            if Fasta.is_up_to_date(self.flat + ".npy", self.fasta_name):
+                self.flat = self.flat + ".npy"
+                self.npy = True
+                return Fasta._load_index(self.gdx)
+            if Fasta.is_up_to_date(self.flat, self.fasta_name):
+                return Fasta._load_index(self.gdx)
 
 
-        out = open(self.flat, 'wb')
 
         fh = open(self.fasta_name, 'r+')
         mm = mmap.mmap(fh.fileno(), os.path.getsize(self.fasta_name))
+
+
+
+        out = open(self.flat, 'wb')
 
         # do the flattening (remove newlines)
         sheader = mm.find('>')
@@ -147,7 +202,23 @@ class Fasta(dict):
         p = open(self.gdx, 'wb')
         cPickle.dump(idx, p)
         p.close(); fh.close(); out.close()
+
+        if len(idx) < 150:
+            self.npy = True
+
+        if self.npy:
+            self._make_npy(self.flat)
+            self.flat = self.flat + ".npy"
+
         return idx
+
+    def _make_npy(self, flat_file):
+        mm = np.memmap(flat_file, dtype="S1", mode="r+")
+        a = np.array(mm, dtype="S1")
+        del mm
+        np.save(flat_file + ".npy", a)
+        os.unlink(flat_file)
+
 
 
     def iterkeys(self):
@@ -159,12 +230,15 @@ class Fasta(dict):
         return key in self.index.keys()
 
     def __getitem__(self, i):
-        # this implements the lazy loading an only allows a single 
+        # this implements the lazy loading
         if i in self.chr:
             return self.chr[i]
 
         c = self.index[i]
-        self.chr[i] = FastaRecord(self.fh, c[0], c[1])
+        if self.npy:
+            self.chr[i] = NpyFastaRecord(self.fh, c[0], c[1])
+        else:
+            self.chr[i] = FastaRecord(self.fh, c[0], c[1])
         return self.chr[i]
 
     @classmethod
