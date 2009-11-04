@@ -38,7 +38,7 @@ class FastaRecord(object):
     def __getitem__(self, islice):
         fh = self.fh
         fh.seek(self.start)
-        if isinstance(islice, int):
+        if isinstance(islice, (int, long)):
             if islice < 0:
                 fh.seek(self.stop + islice)
             else:
@@ -96,7 +96,7 @@ class NpyFastaRecord(FastaRecord):
                 islice += self.start
             else:
                 islice += self.stop
-            return self.mm[islice].tostring()
+            return self.mm[islice]
 
         start, stop = self._adjust_slice(islice)
         return self.mm[start:stop:islice.step]
