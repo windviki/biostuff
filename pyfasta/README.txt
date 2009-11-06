@@ -12,10 +12,13 @@ Implementation
 ==============
 
 Requires Python >= 2.5. Stores a flattened version of the fasta file without 
-spaces or headers. And a pickle of the start, stop (for fseek) locations of 
-each header in the fasta file for internal use.
+spaces or headers and uses either a mmap of numpy binary format or fseek/fread so the
+*sequence data is never read into memory*. Saves a pickle (.gdx) of the start, stop 
+(for fseek/mmap) locations of each header in the fasta file for internal use.
 Now supports the numpy array interface.
-
+When the underlying sequence file contains fewer than 150 headers (e.g. fewer than 150 
+chromosomes), the numpy binary format will be used and access will be significantly faster.
+For greater than 150 sequences, fseek/fread are used.
 
 Usage
 =====
@@ -61,6 +64,11 @@ Slicing
     >>> f.sequence({'chr': 'chr1', 'start': 2, 'stop': 9, 'strand': '-'})
     'TCAGTCAG'
 
+    # for files with < 150 sequences, it's possible to get back a numpy array directly
+    >>> f['chr1'].tostring = False
+    >>> f['chr1'][:10] # doctest: +NORMALIZE_WHITESPACE
+    memmap(['A', 'C', 'T', 'G', 'A', 'C', 'T', 'G', 'A', 'C'], dtype='|S1')
+
 
 ---------------------
 Numpy Array Interface
@@ -81,6 +89,7 @@ Numpy Array Interface
     >>> a[11:13] = np.array('N', dtype='c')
     >>> a[10:14].tostring()
     'ANNA'
+
    
 
     # cleanup (though for real use these will remain for faster access)

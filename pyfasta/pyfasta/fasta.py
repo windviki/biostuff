@@ -79,6 +79,7 @@ class FastaRecord(object):
         }
 
 class NpyFastaRecord(FastaRecord):
+    __slots__ = ('filename', 'start', 'stop', 'mm', 'tostring')
     def __init__(self, filename, start, stop, tostring=True):
         self.filename = filename
         self.mm = np.load(filename, mmap_mode="r")
