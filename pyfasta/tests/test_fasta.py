@@ -1,4 +1,4 @@
-from pyfasta import Fasta
+from pyfasta import Fasta, NpyFastaRecord
 import unittest
 
 class FastaTest(unittest.TestCase):
@@ -11,10 +11,21 @@ class FastaTest(unittest.TestCase):
         self.assertEqual(sorted(self.f.keys()), ['chr1', 'chr2', 'chr3'])
 
     
-    """
     def test_mmap(self):
         seq = self.f['chr2']
+        self.assertEqual(seq.__class__, NpyFastaRecord)
+
         self.assertEqual(seq[0], 'T')
+        self.assertEqual(seq[-1], 'T')
+
+
+
+        for i in (1, len(seq) -2):
+            self.assertEqual(seq[i], 'A')
+
+        for i in (1, len(seq) -3):
+            self.assertEqual(seq[i: i + 2], 'AA')
+        
         self.assertEqual(seq[1], 'A')
 
         self.assertEqual(seq[-1], 'T')
@@ -22,7 +33,6 @@ class FastaTest(unittest.TestCase):
 
         self.assertEqual(seq[0], 'T')
         self.assertEqual(seq[6:9], 'AAA')
-        """
 
     def test_shape(self):
         self.assertEqual(len(self.f['chr2']), 80)

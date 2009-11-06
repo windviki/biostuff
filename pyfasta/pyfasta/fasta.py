@@ -92,7 +92,7 @@ class NpyFastaRecord(FastaRecord):
 
     def getdata(self, islice):
         if isinstance(islice, (int, long)):
-            if islice > 0:
+            if islice >= 0:
                 islice += self.start
             else:
                 islice += self.stop
@@ -103,10 +103,7 @@ class NpyFastaRecord(FastaRecord):
 
     def __getitem__(self, islice):
         d = self.getdata(islice)
-        if self.tostring:
-            return d.tostring()
-        else:
-            return d
+        return d.tostring() if self.tostring else d
 
     @property
     def __array_interface__(self):
