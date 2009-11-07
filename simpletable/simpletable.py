@@ -1,5 +1,4 @@
 """
-
 SimpleTable: simple wrapper around `pytables`_ hdf5
 ------------------------------------------------------------------------------
 
@@ -15,10 +14,12 @@ Example Usage::
 
 define a table as a subclass of simple table.
 
+  >>> RGB = tables.Enum(list('RGB'))
   >>> class ATable(SimpleTable):
   ...     x = tables.Float32Col()
   ...     y = tables.Float32Col()
   ...     name = tables.StringCol(16)
+  ...     color = tables.EnumCol(RGB, 'R', 'uint8')
 
 instantiate with: args: filename, tablename
 
@@ -30,24 +31,45 @@ insert as with pytables:
   >>> for i in range(50):
   ...    row['x'], row['y'] = i, i * 10
   ...    row['name'] = "name_%i" % i
+  ...    # NOTE how we have to manually translate the enum column.
+  ...    row['color'] = RGB['G']
   ...    row.append()
   >>> tbl.flush()
 
-access the entire array via the numpy array interface
-  >>> import numpy as np
-  >>> np.asarray(tbl)
-
+  # can have the enum cols automatically translated using `insert`
+  >>> data = {'x': 1000, 'y': 2000, 'color': 'G', 'name': 'flintstone'}
+  >>> tbl.insert(data, row)
+  >>> row.append()
+  >>> tbl.flush()
 
 there is also `insert_many()` method with takes an iterable
 of dicts with keys matching the colunns (x, y, name) in this
 case.
 
 query the data (query() alias of tables' readWhere()
+note that pytables sends back the data with enum cols as they were
+and does nothing to translate them to their original values.
 
   >>> tbl.query('(x > 4) & (y < 70)') #doctest: +NORMALIZE_WHITESPACE
-  array([('name_5', 5.0, 50.0), ('name_6', 6.0, 60.0)],
-        dtype=[('name', '|S16'), ('x', '<f4'), ('y', '<f4')])
+  array([(1, 'name_5', 5.0, 50.0), (1, 'name_6', 6.0, 60.0)],
+         dtype=[('color', '|u1'), ('name', '|S16'), ('x', '<f4'), ('y', '<f4')])
 
+
+  # get translated enumcols in an iterator with the .q  method.
+  >>> r = tbl.q('x == 1000') # doctest: +NORMALIZE_WHITESPACE
+  >>> r # doctest: +ELLIPSIS
+  <generator ...>
+
+  >>> list(r)
+  [{'color': 'G', 'x': 1000.0, 'name': 'flintstone', 'y': 2000.0}]
+
+  # or use the `translate_enum` method
+  >>> for row_with_enum in tbl.query('(x > 4) & (y < 70)'):
+  ...     tbl.translate_enum(row_with_enum)
+  {'color': 'G', 'x': 5.0, 'name': 'name_5', 'y': 50.0}
+  {'color': 'G', 'x': 6.0, 'name': 'name_6', 'y': 60.0}
+
+Note that using `q` or `translate_enum` will affect performance.
 """
 
 import tables
@@ -75,6 +97,7 @@ class SimpleTable(tables.Table):
                        expectedrows=expectedrows,
                        _log=False)
         self._c_classId = self.__class__.__name__
+        self.enums = dict([(k, self.getEnum(k)) for k, v in self.coldescrs.iteritems() if isinstance(v, tables.EnumCol)])
 
     def _get_description(self):
         # pull the description from the attrs
@@ -101,18 +124,29 @@ class SimpleTable(tables.Table):
                     row[c] = getattr(d, c)
                 row.append()
         self.flush()
-
+    
+    def insert(self, data, row, attr=False):
+        for col in self.colnames:
+            if col in self.enums:
+                row[col] = self.enums[col][data[col]]
+            else:
+                row[col] = data[col]
+        
     query = tables.Table.readWhere
 
-    @property
-    def __array_interface__(self):
-        return {
-            'shape': (self.nrows, ),
-            'version': 3,
-            'typestr': self.dtype.str,
-            'descr': self.dtype.descr,
-            'data': self[:].data,
-        }
+    def translate_enum(self, row):
+        d = {}
+        for col in self.colnames:
+            d[col] = row[col]
+        for col in self.enums:
+            d[col] = self.enums[col](row[col])
+        return d
+
+    def q(self, *args):
+        qq = self.query(*args)
+        for row in qq:
+            yield self.translate_enum(row)
+
 
 # convience sublcass that i use a lot.
 class BlastTable(SimpleTable):
