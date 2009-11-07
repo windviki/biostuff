@@ -5,7 +5,7 @@ try:
     doc = simpletable.__doc__
 except:
     doc = ""
-version = '0.2.1'
+version = '0.2.2'
 
 
 
@@ -17,7 +17,7 @@ setup(name          = 'simpletable',
       author        = 'Brent Pedersen',
       author_email  = 'bpederse@gmail.com',
       url   = 'http://bitbucket.org/brentp/biostuff/',
-      download_url = 'http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
+      #download_url = 'http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
       long_description = doc,
       install_requires = ['tables'],
       zip_safe=False,
