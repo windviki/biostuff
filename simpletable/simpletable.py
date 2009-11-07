@@ -36,7 +36,8 @@ insert as with pytables:
   ...    row.append()
   >>> tbl.flush()
 
-  # can have the enum cols automatically translated using `insert`
+can have the enum cols automatically translated using `insert`
+
   >>> data = {'x': 1000, 'y': 2000, 'color': 'G', 'name': 'flintstone'}
   >>> tbl.insert(data, row)
   >>> row.append()
@@ -54,8 +55,8 @@ and does nothing to translate them to their original values.
   array([(1, 'name_5', 5.0, 50.0), (1, 'name_6', 6.0, 60.0)],
          dtype=[('color', '|u1'), ('name', '|S16'), ('x', '<f4'), ('y', '<f4')])
 
+get translated enumcols in an iterator with the .q  method.
 
-  # get translated enumcols in an iterator with the .q  method.
   >>> r = tbl.q('x == 1000') # doctest: +NORMALIZE_WHITESPACE
   >>> r # doctest: +ELLIPSIS
   <generator ...>
@@ -63,7 +64,8 @@ and does nothing to translate them to their original values.
   >>> list(r)
   [{'color': 'G', 'x': 1000.0, 'name': 'flintstone', 'y': 2000.0}]
 
-  # or use the `translate_enum` method
+or use the `translate_enum` method
+
   >>> for row_with_enum in tbl.query('(x > 4) & (y < 70)'):
   ...     tbl.translate_enum(row_with_enum)
   {'color': 'G', 'x': 5.0, 'name': 'name_5', 'y': 50.0}
