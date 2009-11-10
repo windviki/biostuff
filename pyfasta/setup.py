@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 
 
-version = '0.2.8'
+version = '0.2.9'
 
 setup(name='pyfasta',
       version=version,
-      description="pythonic access to fasta sequence files",
+      description="fast, memory-efficient, pythonic access to fasta sequence files",
       url="http://bitbucket.org/brentp/biostuff/",
       long_description=open('README.txt').read(),
       classifiers=["Topic :: Scientific/Engineering :: Bio-Informatics"],

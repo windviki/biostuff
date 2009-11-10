@@ -11,6 +11,7 @@ complement  = lambda s: s.translate(_complement)
 
 class FastaRecord(object):
     __slots__ = ('fh', 'start', 'stop')
+    ext = ".flat"
 
     def __init__(self, fh, start, stop):
 
@@ -21,6 +22,13 @@ class FastaRecord(object):
     def __len__(self):
         return self.stop - self.start
 
+    @classmethod
+    def prepare(self, filename):
+        return open(filename, "r")
+
+    @classmethod
+    def modify_flat(self, flat_file):
+        return None
     
     def _adjust_slice(self, islice):
         if not islice.start is None and islice.start < 0:
@@ -80,6 +88,7 @@ class FastaRecord(object):
 
 class NpyFastaRecord(FastaRecord):
     __slots__ = ('start', 'stop', 'mm', 'tostring')
+    ext = ".npy"
     def __init__(self, mm, start, stop, tostring=True):
         self.mm = mm
         self.start = start
@@ -89,6 +98,17 @@ class NpyFastaRecord(FastaRecord):
     def __repr__(self):
         return "%s(%i..%i)" % (self.__class__.__name__,
                                    self.start, self.stop)
+
+    @classmethod
+    def prepare(self, filename):
+        return np.load(filename, mmap_mode="r")
+
+    @classmethod
+    def modify_flat(self, flat_file):
+        mm = np.memmap(flat_file, dtype="S1", mode="r+")
+        a = np.array(mm, dtype="S1")
+        del mm
+        np.save(flat_file, a)
 
     def getdata(self, islice):
         if isinstance(islice, (int, long)):
@@ -117,11 +137,12 @@ class NpyFastaRecord(FastaRecord):
 
 
 class Fasta(dict):
-    def __init__(self, fasta_name):
+    def __init__(self, fasta_name, record_class=NpyFastaRecord):
         """
             >>> from pyfasta import Fasta
 
-            >>> f = Fasta('tests/data/three_chrs.fasta')
+            >>> f = Fasta('tests/data/three_chrs.fasta', 
+            ...                          record_class=FastaRecord)
             >>> sorted(f.keys())
             ['chr1', 'chr2', 'chr3']
 
@@ -139,11 +160,10 @@ class Fasta(dict):
 
         """
         self.fasta_name = fasta_name
-        self.npy = True
+        self.record_class = record_class
         self.gdx = fasta_name + ".gdx"
-        self.flat = fasta_name + ".flat"
+        self.flat = fasta_name + record_class.ext
         self.index = self.flatten()
-        self.filename = self.flat
 
         self.chr = {}
 
@@ -155,20 +175,13 @@ class Fasta(dict):
     def flatten(self):
         """remove all newlines from the sequence in a fasta file"""
 
-        if Fasta.is_up_to_date(self.gdx, self.fasta_name):
-            if Fasta.is_up_to_date(self.flat + ".npy", self.fasta_name):
-                self.flat = self.flat + ".npy"
-                self.npy = True
+        if Fasta.is_up_to_date(self.gdx, self.fasta_name) and \
+            Fasta.is_up_to_date(self.flat, self.fasta_name):
+                self.prepared = self.record_class.prepare(self.flat)
                 return Fasta._load_index(self.gdx)
-            if Fasta.is_up_to_date(self.flat, self.fasta_name):
-                return Fasta._load_index(self.gdx)
-
-
 
         fh = open(self.fasta_name, 'r+')
         mm = mmap.mmap(fh.fileno(), os.path.getsize(self.fasta_name))
-
-
 
         out = open(self.flat, 'wb')
 
@@ -198,17 +211,13 @@ class Fasta(dict):
         cPickle.dump(idx, p)
         p.close(); fh.close(); out.close()
 
-        self._make_npy(self.flat)
-        self.flat = self.flat + ".npy"
+        self.record_class.modify_flat(self.flat)
+
+        self.prepared = self.record_class.prepare(self.flat)
+        #self.prepared = np.load(self.flat, mmap_mode="r")
 
         return idx
 
-    def _make_npy(self, flat_file):
-        mm = np.memmap(flat_file, dtype="S1", mode="r+")
-        a = np.array(mm, dtype="S1")
-        del mm
-        np.save(flat_file + ".npy", a)
-        os.unlink(flat_file)
 
 
 
@@ -226,8 +235,7 @@ class Fasta(dict):
             return self.chr[i]
 
         c = self.index[i]
-        self.mm = np.load(self.filename, mmap_mode="r")
-        self.chr[i] = NpyFastaRecord(self.mm, c[0], c[1])
+        self.chr[i] = self.record_class(self.prepared, c[0], c[1])
         """ old
         else:
             self.chr[i] = FastaRecord(self.fh, c[0], c[1])

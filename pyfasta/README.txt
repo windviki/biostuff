@@ -64,18 +64,18 @@ Slicing
     >>> f.sequence({'chr': 'chr1', 'start': 2, 'stop': 9, 'strand': '-'})
     'TCAGTCAG'
 
-    # for files with < 150 sequences, it's possible to get back a numpy array directly
+-----
+Numpy
+-----
+
+The default is to use a memmaped numpy array as the backend. In which case it's possible to
+get back an array directly...
+
     >>> f['chr1'].tostring = False
     >>> f['chr1'][:10] # doctest: +NORMALIZE_WHITESPACE
     memmap(['A', 'C', 'T', 'G', 'A', 'C', 'T', 'G', 'A', 'C'], dtype='|S1')
 
 
----------------------
-Numpy Array Interface
----------------------
-::
-
-    # FastaRecords support the numpy array interface.
     >>> import numpy as np
     >>> a = np.array(f['chr2'])
     >>> a.shape[0] == len(f['chr2'])
@@ -90,9 +90,28 @@ Numpy Array Interface
     >>> a[10:14].tostring()
     'ANNA'
 
-   
 
-    # cleanup (though for real use these will remain for faster access)
+-----------------------
+Backends (Record class)
+-----------------------
+
+It's also possible to specify another record class as the underlying work-horse for
+slicing and reading. Currently, there's just the default: NpyFastaRecord which uses
+numpy memmap FastaRecord, which uses using fseek/fread. It's possible to create your
+own using a sub-class of FastaRecord. see the source for details.
+Next addition will be a pytables/hdf5 backend.
+
+    >>> from pyfasta import FastaRecord # default is NpyFastaRecord
+    >>> f = Fasta('tests/data/three_chrs.fasta', record_class=FastaRecord)
+    >>> f['chr1']
+    FastaRecord('tests/data/three_chrs.fasta.flat', 0..80)
+
+other than the repr, it should behave exactly like the Npy record class backend
+
+
+cleanup (though for real use these will remain for faster access)
+
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
-    >>> os.unlink('tests/data/three_chrs.fasta.flat.npy')
+    >>> os.unlink('tests/data/three_chrs.fasta.npy')
+    >>> os.unlink('tests/data/three_chrs.fasta.flat')

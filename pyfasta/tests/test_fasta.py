@@ -68,7 +68,7 @@ class FastaTest(unittest.TestCase):
 
     def tearDown(self):
         import os
-        os.unlink('tests/data/three_chrs.fasta.flat.npy')
+        os.unlink('tests/data/three_chrs.fasta.npy')
         os.unlink('tests/data/three_chrs.fasta.gdx')
 
 
