@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from distutils.extension import Extension
 #from Cython.Distutils import build_ext
 
-version = '0.1.3'
+version = '0.1.4'
 import numpy
 np_include = numpy.get_include()
 try:
@@ -11,26 +11,25 @@ try:
 except:
     doc = ""
 
-import os
-os.environ["CFLAGS"] = "-O3"
 setup(name='nwalign',
       version=version,
       description="Needleman-Wunsch global sequence alignment",
       long_description=doc,
-      ext_modules=[ Extension("nwalign",
-                              #sources=["nwalign.pyx"],
-                      sources=["nwalign.c"],
-                      include_dirs=[np_include, "."])],
+      ext_modules=[ Extension("cnwalign",
+                      sources=["nwalign/cnwalign.c"],
+                      include_dirs=[np_include, "nwalign"])],
       keywords='bioinformatics alignment needleman-wunsch',
       url='http://bitbucket.org/brentp/biostuff/',
       #download_url='http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
       author='brentp',
       author_email='bpederse@gmail.com',
       license='BSD',
-      packages=find_packages(exclude=[]), # + ['.'],
       test_suite='nose.collector',
       include_package_data=True,
       zip_safe=False,
+      packages=['nwalign'],
+      package_dir={'nwalign': 'nwalign'},
+      package_data = {'nwalign': ['*.pyx']},
       install_requires=[
           'numpy', 'cython'
       ],
