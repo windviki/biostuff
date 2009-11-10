@@ -71,7 +71,6 @@ get back an array directly...
     >>> f['chr1'][:10] # doctest: +NORMALIZE_WHITESPACE
     memmap(['A', 'C', 'T', 'G', 'A', 'C', 'T', 'G', 'A', 'C'], dtype='|S1')
 
-
     >>> import numpy as np
     >>> a = np.array(f['chr2'])
     >>> a.shape[0] == len(f['chr2'])
@@ -81,7 +80,7 @@ get back an array directly...
     array(['A', 'A', 'A', 'A'], 
           dtype='|S1')
 
-    # mask a sub-sequence:
+mask a sub-sequence:
     >>> a[11:13] = np.array('N', dtype='c')
     >>> a[10:14].tostring()
     'ANNA'
