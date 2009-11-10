@@ -79,16 +79,15 @@ class FastaRecord(object):
         }
 
 class NpyFastaRecord(FastaRecord):
-    __slots__ = ('filename', 'start', 'stop', 'mm', 'tostring')
-    def __init__(self, filename, start, stop, tostring=True):
-        self.filename = filename
-        self.mm = np.load(filename, mmap_mode="r")
+    __slots__ = ('start', 'stop', 'mm', 'tostring')
+    def __init__(self, mm, start, stop, tostring=True):
+        self.mm = mm
         self.start = start
         self.stop = stop
         self.tostring = tostring
 
     def __repr__(self):
-        return "%s('%s', %i..%i)" % (self.__class__.__name__, self.filename,
+        return "%s(%i..%i)" % (self.__class__.__name__,
                                    self.start, self.stop)
 
     def getdata(self, islice):
@@ -140,14 +139,11 @@ class Fasta(dict):
 
         """
         self.fasta_name = fasta_name
-        self.npy = False
+        self.npy = True
         self.gdx = fasta_name + ".gdx"
         self.flat = fasta_name + ".flat"
         self.index = self.flatten()
-        if self.npy:
-            self.fh = self.flat
-        else:
-            self.fh = open(self.flat, 'rb')
+        self.filename = self.flat
 
         self.chr = {}
 
@@ -181,7 +177,8 @@ class Fasta(dict):
         snewline = mm.find('\n', sheader)
         idx = {}
         pos = 0
-        while sheader < len(mm):
+        len_mm = len(mm)
+        while sheader < len_mm:
             header = mm[sheader:snewline + 1]
             #out.write(header)
 
@@ -201,12 +198,8 @@ class Fasta(dict):
         cPickle.dump(idx, p)
         p.close(); fh.close(); out.close()
 
-        if len(idx) < 150:
-            self.npy = True
-
-        if self.npy:
-            self._make_npy(self.flat)
-            self.flat = self.flat + ".npy"
+        self._make_npy(self.flat)
+        self.flat = self.flat + ".npy"
 
         return idx
 
@@ -233,10 +226,12 @@ class Fasta(dict):
             return self.chr[i]
 
         c = self.index[i]
-        if self.npy:
-            self.chr[i] = NpyFastaRecord(self.fh, c[0], c[1])
+        self.mm = np.load(self.filename, mmap_mode="r")
+        self.chr[i] = NpyFastaRecord(self.mm, c[0], c[1])
+        """ old
         else:
             self.chr[i] = FastaRecord(self.fh, c[0], c[1])
+        """
         return self.chr[i]
 
     @classmethod

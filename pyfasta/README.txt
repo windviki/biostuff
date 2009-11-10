@@ -32,7 +32,7 @@ Usage
     ['chr1', 'chr2', 'chr3']
 
     >>> f['chr1']
-    NpyFastaRecord('tests/data/three_chrs.fasta.flat.npy', 0..80)
+    NpyFastaRecord(0..80)
 
 Slicing
 -------
