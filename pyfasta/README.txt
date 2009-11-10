@@ -15,10 +15,6 @@ Requires Python >= 2.5. Stores a flattened version of the fasta file without
 spaces or headers and uses either a mmap of numpy binary format or fseek/fread so the
 *sequence data is never read into memory*. Saves a pickle (.gdx) of the start, stop 
 (for fseek/mmap) locations of each header in the fasta file for internal use.
-Now supports the numpy array interface.
-When the underlying sequence file contains fewer than 150 headers (e.g. fewer than 150 
-chromosomes), the numpy binary format will be used and access will be significantly faster.
-For greater than 150 sequences, fseek/fread are used.
 
 Usage
 =====
