@@ -31,41 +31,42 @@ def info(args):
     >>> info(['--fasta', 'tests/data/three_chrs.fasta'])
     """
     import optparse
-    parser = optparse.OptionParser("... a fasta file and print out the results in order of length."
-                                   "by default only the first 30 sequences are printed.")
+    parser = optparse.OptionParser("... a fasta file and print out the results"
+                                   "in order of length.")
 
-    parser.add_option("--all", dest="all", help="include headers",
-                      action="store_true", default=False)
+    parser.add_option("--n", type="int", dest="nseqs", help="max number of records to print",
+                      default=20)
     parser.add_option("--gc", dest="gc", help="show gc content",
                       action="store_true", default=False)
-    options, (fasta,) = parser.parse_args(args)
-    if not (fasta):
+    options, fastas = parser.parse_args(args)
+    if not (fastas):
         sys.exit(parser.print_help())
     import operator
-    
-    f = Fasta(fasta)
-    info = sorted([(k, len(seq)) for k, seq in f.iteritems()], 
-                  key=operator.itemgetter(1), reverse=True)
-    
-    total_len = sum(l for k, l in info)
-    nseqs = len(info)
-    if not options.all: info = info[:30]
-    print "\n" + fasta
-    print "=" * len(fasta)
-    for k, l in info:
-        gc = ""
-        if options.gc:
-            seq = str(f[k]).upper()
-            g = seq.count('G')
-            c = seq.count('C')
-            gc = 100.0 * (g + c) / float(l)
-            gc = "gc:%.2f%%" % gc
-        print (">%s length:%i " % (k, l)) + gc
 
-    if total_len > 1000000:
-        total_len = "%.3fM" % (total_len / 1000000.)
-    print
-    print "%s basepairs in %i sequences" % (total_len, nseqs)
+    for fasta in fastas:
+        f = Fasta(fasta)
+        info = sorted([(k, len(seq)) for k, seq in f.iteritems()], 
+                  key=operator.itemgetter(1), reverse=True)
+
+        total_len = sum(l for k, l in info)
+        nseqs = len(info)
+        info = info[:options.nseqs]
+        print "\n" + fasta
+        print "=" * len(fasta)
+        for k, l in info:
+            gc = ""
+            if options.gc:
+                seq = str(f[k]).upper()
+                g = seq.count('G')
+                c = seq.count('C')
+                gc = 100.0 * (g + c) / float(l)
+                gc = "gc:%.2f%%" % gc
+            print (">%s length:%i " % (k, l)) + gc
+
+        if total_len > 1000000:
+            total_len = "%.3fM" % (total_len / 1000000.)
+        print
+        print "%s basepairs in %i sequences" % (total_len, nseqs)
 
 
 def extract(args):
@@ -77,7 +78,7 @@ def extract(args):
     import optparse
     parser = optparse.OptionParser("""... send in options + a list of sequences to extract
                e.g.:
-               pyfasta extract --fasta some.fasta --header at2g26540 at3g45640""") 
+               pyfasta extract --fasta some.fasta --header at2g26540 at3g45640""")
     parser.add_option("--fasta", dest="fasta", help="path to the fasta file")
     parser.add_option("--header", dest="header", help="include headers", action="store_true", default=False)
     parser.add_option("--file", dest="file", help="if this flag is used, the sequences to extract" \
@@ -90,7 +91,7 @@ def extract(args):
     f = Fasta(options.fasta)
     if options.file:
         seqs = (x.strip() for x in open(seqs[0]))
-     
+
     for seqname in seqs:
         seq = f[seqname]
         if options.header:
