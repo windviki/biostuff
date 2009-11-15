@@ -31,7 +31,8 @@ def info(args):
     >>> info(['--fasta', 'tests/data/three_chrs.fasta'])
     """
     import optparse
-    parser = optparse.OptionParser("""... a fasta file and print out the results. by default only the first 30 sequences are printed.""")
+    parser = optparse.OptionParser("... a fasta file and print out the results in order of length."
+                                   "by default only the first 30 sequences are printed.")
 
     parser.add_option("--all", dest="all", help="include headers",
                       action="store_true", default=False)
@@ -42,13 +43,19 @@ def info(args):
     import operator
     
     f = Fasta(options.fasta)
-    info = sorted([(key, len(seq)) for k, seq in f.iteritems()], 
+    info = sorted([(k, len(seq)) for k, seq in f.iteritems()], 
                   key=operator.itemgetter(1), reverse=True)
     
+    total_len = sum(l for k, l in info)
+    nseqs = len(info)
     if not options.all: info = info[:30]
     for k, l in info:
         print ">%s length: %i" % (k, l)
 
+    if total_len > 1000000:
+        total_len = "%.3fM" % (total_len / 1000000.)
+    print
+    print "%s basepairs in %i sequences" % (total_len, nseqs)
 
 
 def extract(args):
