@@ -36,21 +36,31 @@ def info(args):
 
     parser.add_option("--all", dest="all", help="include headers",
                       action="store_true", default=False)
-    parser.add_option("--fasta", dest="fasta", help="path to the fasta file")
-    options, _ = parser.parse_args(args)
-    if not (options.fasta):
+    parser.add_option("--gc", dest="gc", help="show gc content",
+                      action="store_true", default=False)
+    options, (fasta,) = parser.parse_args(args)
+    if not (fasta):
         sys.exit(parser.print_help())
     import operator
     
-    f = Fasta(options.fasta)
+    f = Fasta(fasta)
     info = sorted([(k, len(seq)) for k, seq in f.iteritems()], 
                   key=operator.itemgetter(1), reverse=True)
     
     total_len = sum(l for k, l in info)
     nseqs = len(info)
     if not options.all: info = info[:30]
+    print "\n" + fasta
+    print "=" * len(fasta)
     for k, l in info:
-        print ">%s length: %i" % (k, l)
+        gc = ""
+        if options.gc:
+            seq = str(f[k]).upper()
+            g = seq.count('G')
+            c = seq.count('C')
+            gc = 100.0 * (g + c) / float(l)
+            gc = "gc:%.2f%%" % gc
+        print (">%s length:%i " % (k, l)) + gc
 
     if total_len > 1000000:
         total_len = "%.3fM" % (total_len / 1000000.)
