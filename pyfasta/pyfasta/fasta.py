@@ -12,6 +12,13 @@ complement  = lambda s: s.translate(_complement)
 class FastaRecord(object):
     __slots__ = ('fh', 'start', 'stop')
     ext = ".flat"
+    idx = ".gdx"
+
+    @classmethod
+    def is_current(klass, fasta_name):
+        utd = Fasta.is_up_to_date(fasta_name + klass.ext, fasta_name) 
+        if not utd: return False
+        return Fasta.is_up_to_date(fasta_name + klass.idx, fasta_name)
 
     def __init__(self, fh, start, stop):
 
@@ -23,12 +30,28 @@ class FastaRecord(object):
         return self.stop - self.start
 
     @classmethod
-    def prepare(self, filename):
-        return open(filename, "r")
+    def prepare(klass, fasta_obj, seqinfo_generator):
+        """returns the __getitem__'able the index.
+        """
+        f = fasta_obj.fasta_name
+        if klass.is_current(f):
+            return cPickle.load(open(f + klass.idx)), \
+                               klass.modify_flat(f + klass.ext)
 
+        idx = {}
+        flatfh = open(f + klass.ext, 'wb')
+        for seqid, start, stop, seq in seqinfo_generator:
+            flatfh.write(seq)
+            idx[seqid] = (start, stop)
+            
+        cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
+        flatfh.close()
+
+        return idx, klass.modify_flat(f + klass.ext)
+    
     @classmethod
-    def modify_flat(self, flat_file):
-        return None
+    def modify_flat(klass, flat_file):
+        return open(flat_file, 'wb')
     
     def _adjust_slice(self, islice):
         if not islice.start is None and islice.start < 0:
@@ -88,7 +111,7 @@ class FastaRecord(object):
 
 class NpyFastaRecord(FastaRecord):
     __slots__ = ('start', 'stop', 'mm', 'tostring')
-    ext = ".npy"
+
     def __init__(self, mm, start, stop, tostring=True):
         self.mm = mm
         self.start = start
@@ -100,15 +123,9 @@ class NpyFastaRecord(FastaRecord):
                                    self.start, self.stop)
 
     @classmethod
-    def prepare(self, filename):
-        return np.load(filename, mmap_mode="r")
-
-    @classmethod
-    def modify_flat(self, flat_file):
+    def modify_flat(klass, flat_file):
         mm = np.memmap(flat_file, dtype="S1", mode="r+")
-        a = np.array(mm, dtype="S1")
-        del mm
-        np.save(flat_file, a)
+        return mm
 
     def getdata(self, islice):
         if isinstance(islice, (int, long)):
@@ -135,6 +152,28 @@ class NpyFastaRecord(FastaRecord):
         }
 
 
+class MemoryRecord(FastaRecord):
+    def is_current(self):
+        return False
+
+    @classmethod
+    def prepare(klass, fasta_obj, seqinfo_generator):
+        f = fasta_obj.fasta_name
+        seqs = {}
+        idx = {}
+        for seqid, start, stop, seq in seqinfo_generator:
+            seqs[seqid] = (seq, None)
+            
+        return seqs, seqs
+
+    def __init__(self, _, seq, _none):
+        self.seq = seq
+
+    def __getitem__(self, slice):
+        return self.seq.__getitem__(slice)
+
+    def __len__(self):
+        return len(self.seq)
 
 class Fasta(dict):
     def __init__(self, fasta_name, record_class=NpyFastaRecord):
@@ -161,9 +200,9 @@ class Fasta(dict):
         """
         self.fasta_name = fasta_name
         self.record_class = record_class
-        self.gdx = fasta_name + ".gdx"
-        self.flat = fasta_name + record_class.ext
-        self.index = self.flatten()
+        #self.gdx = fasta_name + record_class.idx
+        #self.flat = fasta_name + record_class.ext
+        self.index, self.prepared = self.record_class.prepare(self, self.gen_seq_info())
 
         self.chr = {}
 
@@ -172,54 +211,31 @@ class Fasta(dict):
         return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
 
 
-    def flatten(self):
-        """remove all newlines from the sequence in a fasta file"""
-
-        if Fasta.is_up_to_date(self.gdx, self.fasta_name) and \
-            Fasta.is_up_to_date(self.flat, self.fasta_name):
-                self.prepared = self.record_class.prepare(self.flat)
-                return Fasta._load_index(self.gdx)
-
+    def gen_seq_info(self):
+        """remove all newlines from the sequence in a fasta file
+        and generate starts, stops to be used by the record class"""
         fh = open(self.fasta_name, 'r+')
         mm = mmap.mmap(fh.fileno(), os.path.getsize(self.fasta_name))
-
-        out = open(self.flat, 'wb')
 
         # do the flattening (remove newlines)
         sheader = mm.find('>')
         snewline = mm.find('\n', sheader)
         idx = {}
-        pos = 0
+        start = 0
         len_mm = len(mm)
         while sheader < len_mm:
             header = mm[sheader:snewline + 1]
-            #out.write(header)
-
             sheader = mm.find('>', snewline)
             if sheader == -1: sheader = len(mm)
 
             seq  = mm[snewline + 1: sheader].replace('\n','')
-            out.write(seq)
-            out.flush()
-            p1 = out.tell()
-            idx[header[1:].strip()] = (pos, p1)
-            pos = p1 
 
+            # TODO: make this more efficient.
+            stop = start + len(seq)
+            yield header[1:].strip(), start, stop, seq
+
+            start = stop
             snewline = mm.find('\n', sheader)
-
-        p = open(self.gdx, 'wb')
-        cPickle.dump(idx, p)
-        p.close(); fh.close(); out.close()
-
-        self.record_class.modify_flat(self.flat)
-
-        self.prepared = self.record_class.prepare(self.flat)
-        #self.prepared = np.load(self.flat, mmap_mode="r")
-
-        return idx
-
-
-
 
     def iterkeys(self):
         for k in self.keys(): yield k
@@ -236,10 +252,6 @@ class Fasta(dict):
 
         c = self.index[i]
         self.chr[i] = self.record_class(self.prepared, c[0], c[1])
-        """ old
-        else:
-            self.chr[i] = FastaRecord(self.fh, c[0], c[1])
-        """
         return self.chr[i]
 
     @classmethod

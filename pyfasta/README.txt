@@ -90,10 +90,16 @@ mask a sub-sequence:
 Backends (Record class)
 -----------------------
 
-It's also possible to specify another record class as the underlying work-horse for
-slicing and reading. Currently, there's just the default: NpyFastaRecord which uses
-numpy memmap FastaRecord, which uses using fseek/fread. It's possible to create your
-own using a sub-class of FastaRecord. see the source for details.
+It's also possible to specify another record class as the underlying work-horse
+for slicing and reading. Currently, there's just the default: 
+
+  * NpyFastaRecord which uses numpy memmap
+  * FastaRecord, which uses using fseek/fread
+  * MemoryRecord which reads everything into memory and must reparse the original
+    fasta every time.
+
+it's possible to create your own using a sub-class of FastaRecord. see the source 
+for details.
 Next addition will be a pytables/hdf5 backend.
 
     >>> from pyfasta import FastaRecord # default is NpyFastaRecord
@@ -108,5 +114,4 @@ cleanup (though for real use these will remain for faster access)
 
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
-    >>> os.unlink('tests/data/three_chrs.fasta.npy')
     >>> os.unlink('tests/data/three_chrs.fasta.flat')

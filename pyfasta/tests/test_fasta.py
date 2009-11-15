@@ -1,4 +1,4 @@
-from pyfasta import Fasta, NpyFastaRecord
+from pyfasta import Fasta, NpyFastaRecord, MemoryRecord
 import unittest
 
 class FastaTest(unittest.TestCase):
@@ -68,8 +68,34 @@ class FastaTest(unittest.TestCase):
 
     def tearDown(self):
         import os
-        os.unlink('tests/data/three_chrs.fasta.npy')
+        os.unlink('tests/data/three_chrs.fasta.flat')
         os.unlink('tests/data/three_chrs.fasta.gdx')
+
+
+class RecordClassTest(unittest.TestCase):
+    def setUp(self):
+        self.f = Fasta('tests/data/three_chrs.fasta', record_class=MemoryRecord)
+
+    def test_get(self):
+        f = self.f
+        self.assertEqual(f['chr3'][0:5][::-1], 'ACGCA')
+        seq = 'TACGCACGCTAC'
+        self.assertEqual(seq, f['chr3'][-12:])
+        self.assertEqual(seq[:4], f['chr3'][-12:-8])
+
+        seq = self.f['chr2']
+        self.assertEqual(seq.__class__, MemoryRecord)
+
+        self.assertEqual(seq[0], 'T')
+        self.assertEqual(seq[-1], 'T')
+
+        for i in (1, len(seq) -2):
+            self.assertEqual(seq[i], 'A')
+
+        for i in (1, len(seq) -3):
+            self.assertEqual(seq[i: i + 2], 'AA')
+        
+        self.assertEqual(seq[1], 'A')
 
 
 import numpy as np
@@ -81,7 +107,6 @@ class ArrayInterfaceTest(unittest.TestCase):
     def test_len(self):
         a = np.array(self.f['chr3'])
         assert a.shape[0] == len(self.f['chr3'])
-
 
     def test_copy(self):
         # the array is definitely a copy...

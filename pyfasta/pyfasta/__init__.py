@@ -5,6 +5,7 @@ def main():
     help = """
     available actions:
         `extract`: extract sequences from a fasta file
+        `info`: show info about the fasta file and exit.
 
     to view the help for a particular action, use:
         pyfasta [action] --help
@@ -24,6 +25,31 @@ def main():
         sys.exit()
     
     globals()[action](sys.argv[2:])
+
+def info(args):
+    """
+    >>> info(['--fasta', 'tests/data/three_chrs.fasta'])
+    """
+    import optparse
+    parser = optparse.OptionParser("""... a fasta file and print out the results. by default only the first 30 sequences are printed.""")
+
+    parser.add_option("--all", dest="all", help="include headers",
+                      action="store_true", default=False)
+    parser.add_option("--fasta", dest="fasta", help="path to the fasta file")
+    options, _ = parser.parse_args(args)
+    if not (options.fasta):
+        sys.exit(parser.print_help())
+    import operator
+    
+    f = Fasta(options.fasta)
+    info = sorted([(key, len(seq)) for k, seq in f.iteritems()], 
+                  key=operator.itemgetter(1), reverse=True)
+    
+    if not options.all: info = info[:30]
+    for k, l in info:
+        print ">%s length: %i" % (k, l)
+
+
 
 def extract(args):
     """
