@@ -1,5 +1,6 @@
-from pyfasta import Fasta, NpyFastaRecord, MemoryRecord
+from pyfasta import Fasta, NpyFastaRecord, MemoryRecord, FastaRecord
 import unittest
+import os
 
 class FastaTest(unittest.TestCase):
 
@@ -41,10 +42,36 @@ class FastaTest(unittest.TestCase):
 
         self.assertEqual(self.f['chr3'][:5], 'ACGCA')
 
+    def test_bounds(self):
+        c2 = self.f['chr2']
+        self.assertEquals(len(str(c2[0:900])), 80)
+
+        self.assertEquals(c2[99:99], "")
+        self.assertEquals(c2[99:99], "")
+        self.assertEquals(c2[80:81], "")
+        self.assertEquals(c2[79:81], "T")
+
+
     def test_tostring(self):
         s = 'TAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT'
         self.assertEqual(str(self.f['chr2']), s)
 
+    def test_kmers(self):
+        seq = str(self.f['chr2'])
+        kmers = list(self.f['chr2'].as_kmers(10))
+        self.assertEqual(len(kmers), len(seq) / 10)
+        self.assertEqual(kmers[0], (0, seq[:10]))
+
+        seqs = [k[1] for k in kmers]
+        self.assertEqual("".join(seqs), seq)
+        last_pair = kmers[-1]
+        self.assert_(seqs[-1][-1], 'T')
+
+        seq = str(self.f['chr3'])
+        kmers = list(self.f['chr3'].as_kmers(1))
+        self.assertEquals(kmers[2][0], 2)
+        seqs = [k[1] for k in kmers]
+        self.assertEqual("".join(seqs), seq)
 
     def test_slice_size(self):
         self.assertEqual(self.f['chr3'][:7], 'ACGCATT')
@@ -67,7 +94,42 @@ class FastaTest(unittest.TestCase):
         self.assertEqual(f['chr3'][0:5], 'ACGCA')
 
     def tearDown(self):
-        import os
+        os.unlink('tests/data/three_chrs.fasta.flat')
+        os.unlink('tests/data/three_chrs.fasta.gdx')
+
+class FSeekClassTest(unittest.TestCase):
+    def setUp(self):
+        self.f = Fasta('tests/data/three_chrs.fasta', record_class=FastaRecord)
+
+    def test_bounds_fseek(self):
+        c2 = self.f['chr2']
+        self.assertEquals(len(str(c2[0:900])), 80)
+
+        self.assertEquals(c2[99:99], "")
+        self.assertEquals(c2[99:99], "")
+        self.assertEquals(c2[80:81], "")
+        self.assertEquals(c2[79:81], "T")
+    def test_get(self):
+        f = self.f
+        self.assertEqual(f['chr3'][0:5][::-1], 'ACGCA')
+        seq = 'TACGCACGCTAC'
+        self.assertEqual(seq, f['chr3'][-12:])
+        self.assertEqual(seq[:4], f['chr3'][-12:-8])
+
+        seq = self.f['chr2']
+        self.assertEqual(seq.__class__, FastaRecord)
+
+        self.assertEqual(seq[0], 'T')
+        self.assertEqual(seq[-1], 'T')
+
+        for i in (1, len(seq) -2):
+            self.assertEqual(seq[i], 'A')
+
+        for i in (1, len(seq) -3):
+            self.assertEqual(seq[i: i + 2], 'AA')
+        
+        self.assertEqual(seq[1], 'A')
+    def tearDown(self):
         os.unlink('tests/data/three_chrs.fasta.flat')
         os.unlink('tests/data/three_chrs.fasta.gdx')
 
@@ -97,6 +159,14 @@ class RecordClassTest(unittest.TestCase):
         
         self.assertEqual(seq[1], 'A')
 
+    def test_bounds_fseek(self):
+        c2 = self.f['chr2']
+        self.assertEquals(len(str(c2[0:900])), 80)
+
+        self.assertEquals(c2[99:99], "")
+        self.assertEquals(c2[99:99], "")
+        self.assertEquals(c2[80:81], "")
+        self.assertEquals(c2[79:81], "T")
 
 import numpy as np
 class ArrayInterfaceTest(unittest.TestCase):

@@ -1,11 +1,14 @@
 from fasta import *
 import sys
+from split_fasta import split
 
 def main():
     help = """
     available actions:
         `extract`: extract sequences from a fasta file
         `info`: show info about the fasta file and exit.
+        `split`: split a large fasta file into separate files
+                 and/or into K-mers.
 
     to view the help for a particular action, use:
         pyfasta [action] --help
@@ -31,10 +34,12 @@ def info(args):
     >>> info(['--fasta', 'tests/data/three_chrs.fasta'])
     """
     import optparse
-    parser = optparse.OptionParser("... a fasta file and print out the results"
-                                   "in order of length.")
+    parser = optparse.OptionParser("""\
+   print headers and lengths of the given fasta file in order of length. e.g.:
+        pyfasta info --gc some.fasta""")
 
-    parser.add_option("--n", type="int", dest="nseqs", help="max number of records to print",
+    parser.add_option("-n", "--n", type="int", dest="nseqs", 
+                      help="max number of records to print. use -1 for all",
                       default=20)
     parser.add_option("--gc", dest="gc", help="show gc content",
                       action="store_true", default=False)
@@ -45,12 +50,16 @@ def info(args):
 
     for fasta in fastas:
         f = Fasta(fasta)
-        info = sorted([(k, len(seq)) for k, seq in f.iteritems()], 
-                  key=operator.itemgetter(1), reverse=True)
+        info = [(k, len(seq)) for k, seq in f.iteritems()]
 
         total_len = sum(l for k, l in info)
-        nseqs = len(info)
-        info = info[:options.nseqs]
+        nseqs = len(f)
+        if options.nseqs > -1:
+            info = sorted(info,  key=operator.itemgetter(1), reverse=True)
+            info = info[:options.nseqs]
+        else:
+            info.sort()
+
         print "\n" + fasta
         print "=" * len(fasta)
         for k, l in info:

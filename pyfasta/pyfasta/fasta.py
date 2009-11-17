@@ -29,9 +29,17 @@ class FastaRecord(object):
     def __len__(self):
         return self.stop - self.start
 
+    def as_kmers(self, k):
+        kmax = len(self)
+        i = 0
+        while i < kmax:
+            yield i, self[i:i + k]
+            i += k
+
     @classmethod
     def prepare(klass, fasta_obj, seqinfo_generator):
-        """returns the __getitem__'able the index.
+        """
+        returns the __getitem__'able index. and the thing to get the seqs from.
         """
         f = fasta_obj.fasta_name
         if klass.is_current(f):
@@ -51,7 +59,7 @@ class FastaRecord(object):
     
     @classmethod
     def modify_flat(klass, flat_file):
-        return open(flat_file, 'wb')
+        return open(flat_file, 'rb')
     
     def _adjust_slice(self, islice):
         if not islice.start is None and islice.start < 0:
@@ -64,6 +72,11 @@ class FastaRecord(object):
             istop = self.stop + islice.stop
         else:
             istop = self.stop if islice.stop is None else (self.start + islice.stop)
+
+        # this will give empty string
+        if istart > self.stop: return self.stop, self.stop 
+        if istop > self.stop: 
+            istop = self.stop
         return istart, istop
 
     def __getitem__(self, islice):
@@ -82,13 +95,19 @@ class FastaRecord(object):
             return fh.read(self.stop - self.start)[::islice.step]
         
         istart, istop = self._adjust_slice(islice)
+        if istart is None: return ""
+        l = istop - istart
+        if l == 0: return ""
+
 
         fh.seek(istart)
 
-        l = istop - istart
-
         if islice.step in (1, None):
-            return fh.read(l)
+            try:
+                return fh.read(l)
+            except:
+                print "\n", l, fh
+                raise
 
         return fh.read(l)[::islice.step]
 
@@ -153,9 +172,6 @@ class NpyFastaRecord(FastaRecord):
 
 
 class MemoryRecord(FastaRecord):
-    def is_current(self):
-        return False
-
     @classmethod
     def prepare(klass, fasta_obj, seqinfo_generator):
         f = fasta_obj.fasta_name
@@ -236,6 +252,11 @@ class Fasta(dict):
 
             start = stop
             snewline = mm.find('\n', sheader)
+
+
+    def __len__(self):
+        # might not work for all backends?
+        return len(self.index)
 
     def iterkeys(self):
         for k in self.keys(): yield k
