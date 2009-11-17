@@ -6,6 +6,16 @@ import sys
 import optparse
 
 def newnames(oldname, n):
+    """
+    >>> newnames('some.fasta', 1)
+    ['some.split.fasta']
+
+    >>> newnames('some.fasta', 2)
+    ['some.a.fasta', 'some.b.fasta']
+
+    >>> newnames('some', 2)
+    ['some.a', 'some.b']
+    """
 
     p = oldname.rfind("fa")
     if p != -1:
@@ -16,8 +26,8 @@ def newnames(oldname, n):
         names = [pattern % "split"]
     else:
         names = [pattern % string.letters[i] for i in range(n)]
-    print "creating new files:"
-    print "\n".join(names)
+    print >>sys.stderr, "creating new files:"
+    print >>sys.stderr, "\n".join(names)
     return names
 
 
@@ -31,6 +41,10 @@ def print_to_fh(fh, fasta, lens, seqinfo):
 
 
 def format_kmer(seqid, start, kmer_len):
+    """
+    >>> format_kmer('chr3', 1000, 1000)
+    'chr3_1001 (1000-mers)'
+    """
     return "%s_%i (%i-mers)" % (seqid, start + 1, kmer_len)
 
 def split(args):
@@ -64,6 +78,11 @@ def split(args):
         return with_kmers(f, fhs, options.kmers, options.overlap)
 
 def with_kmers(f, fhs, k, overlap):
+    """
+    splice the sequences in Fasta object `f` into pieces of length `k` 
+    with the given `overlap` the results are written to the array of files
+    `fhs`
+    """
     i = 0
     for seqid in f.keys():
         seq = f[seqid]
@@ -74,8 +93,12 @@ def with_kmers(f, fhs, k, overlap):
             i += 1
 
 def without_kmers(f, fhs):
+    """
+    long crappy function that does not solve the bin-packing problem.
+    but attempts to distribute the sequences in Fasta object `f` evenly
+    among the file handles in fhs.
+    """
     name2fh = dict([(fh.name, fh) for fh in fhs])
-    # sort small to large.
     items = sorted([(key, len(f[key])) for key in f.keys()], 
                    key=operator.itemgetter(1))
 
@@ -115,6 +138,8 @@ def without_kmers(f, fhs):
 
                 if not added:
                     break
+                # TODO: test this on glycine
+                added = False
         if added:
             continue
 
@@ -128,6 +153,9 @@ def without_kmers(f, fhs):
 
 
 def find_name_from_len(lmin, lens):
+    """
+    reverse lookup, get name from dict
+    """
     for fname, l in lens.iteritems():
         if l == lmin: 
             return fname
