@@ -44,13 +44,6 @@ Slicing
     >>> f['chr1'][::3]
     'AGTCAGTCAGTCAGTCAGTCAGTCAGT'
 
-
-    # the index stores the start and stop of each header from the flattened 
-    # fasta file. (you should never need this)
-    >>> f.index
-    {'chr3': (160, 3760), 'chr2': (80, 160), 'chr1': (0, 80)}
-
-
     # can query by a 'feature' dictionary
     >>> f.sequence({'chr': 'chr1', 'start': 2, 'stop': 9})
     'CTGACTGA'
@@ -79,9 +72,8 @@ get back an array directly...
     >>> a.shape[0] == len(f['chr2'])
     True
 
-    >>> a[10:14]
-    array(['A', 'A', 'A', 'A'], 
-          dtype='|S1')
+    >>> a[10:14] # doctest: +NORMALIZE_WHITESPACE
+    array(['A', 'A', 'A', 'A'], dtype='|S1')
 
 mask a sub-sequence
 ::

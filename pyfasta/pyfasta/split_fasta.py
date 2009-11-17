@@ -5,7 +5,8 @@ import string
 import sys
 import optparse
 
-def newnames(oldname, n):
+
+def newnames(oldname, n, kmers=None, overlap=None):
     """
     >>> newnames('some.fasta', 1)
     ['some.split.fasta']
@@ -15,13 +16,31 @@ def newnames(oldname, n):
 
     >>> newnames('some', 2)
     ['some.a', 'some.b']
+
+    >>> newnames('some.fasta', 2, kmers=1000)
+    ['some.a.1Kmer.fasta', 'some.b.1Kmer.fasta']
+
+    >>> newnames('some.fasta', 2, kmers=10000, overlap=2000)
+    ['some.a.10Kmer.2Koverlap.fasta', 'some.b.10Kmer.2Koverlap.fasta']
+
+    >>> newnames('some.fasta', 1, kmers=100000, overlap=2000)
+    ['some.split.100Kmer.2Koverlap.fasta']
+
     """
+    if kmers and kmers % 1000 == 0: kmers = "%iK" % (kmers/1000)
+    if overlap and overlap % 1000 == 0: overlap = "%iK" % (overlap/1000)
 
     p = oldname.rfind("fa")
+    kstr = ("%smer." % kmers) if kmers is not None else ""
+    ostr = ("%soverlap." % overlap) if overlap is not None else ""
     if p != -1:
-        pattern = oldname[:p] + "%s." + oldname[p:]
+        pattern = oldname[:p] + "%s." + kstr + ostr + oldname[p:]
     else:
-        pattern = oldname + ".%s"
+        pattern = oldname + kstr + ostr + ".%s"
+
+    
+    
+
     if n == 1:
         names = [pattern % "split"]
     else:
@@ -40,12 +59,14 @@ def print_to_fh(fh, fasta, lens, seqinfo):
     print >>fh, str(f[key])
 
 
-def format_kmer(seqid, start, kmer_len):
+def format_kmer(seqid, start):
     """
-    >>> format_kmer('chr3', 1000, 1000)
-    'chr3_1001 (1000-mers)'
+    prints out a header with 1-based indexing.
+
+    >>> format_kmer('chr3', 1000)
+    'chr3_1001'
     """
-    return "%s_%i (%i-mers)" % (seqid, start + 1, kmer_len)
+    return "%s_%i" % (seqid, start + 1)
 
 def split(args):
     parser = optparse.OptionParser("""\
@@ -68,7 +89,9 @@ def split(args):
         sys.exit(parser.print_help())
     fasta, = fasta
 
-    names = newnames(fasta, options.nsplits)
+    kmer = options.kmers if options.kmers != -1 else None
+    overlap = options.overlap if options.overlap != 0 else None
+    names = newnames(fasta, options.nsplits, kmers=kmer, overlap=overlap)
 
     fhs = [open(n, 'wb') for n in names]
     f = Fasta(fasta)
@@ -88,7 +111,7 @@ def with_kmers(f, fhs, k, overlap):
         seq = f[seqid]
         for (start0, subseq) in Fasta.as_kmers(seq, k, overlap=overlap):
             fh = fhs[i % len(fhs)]
-            print >>fh, ">%s" % format_kmer(seqid, start0, k)
+            print >>fh, ">%s" % format_kmer(seqid, start0)
             print >>fh, subseq
             i += 1
 
@@ -139,7 +162,7 @@ def without_kmers(f, fhs):
                 if not added:
                     break
                 # TODO: test this on glycine
-                added = False
+                #added = False
         if added:
             continue
 
