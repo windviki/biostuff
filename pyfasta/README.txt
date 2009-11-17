@@ -7,6 +7,7 @@ pyfasta: pythonic access to fasta sequence files.
 :Email: bpederse@gmail.com
 :License: MIT
 
+.. contents ::
 
 Implementation
 ==============
@@ -18,7 +19,6 @@ spaces or headers and uses either a mmap of numpy binary format or fseek/fread s
 
 Usage
 =====
-
 ::
 
     >>> from pyfasta import Fasta
@@ -29,6 +29,9 @@ Usage
 
     >>> f['chr1']
     NpyFastaRecord(0..80)
+
+    >>> f['chr1'][:10]
+    'ACTGACTGAC'
 
 Slicing
 -------
@@ -60,12 +63,12 @@ Slicing
     >>> f.sequence({'chr': 'chr1', 'start': 2, 'stop': 9, 'strand': '-'})
     'TCAGTCAG'
 
------
 Numpy
------
+=====
 
 The default is to use a memmaped numpy array as the backend. In which case it's possible to
 get back an array directly...
+::
 
     >>> f['chr1'].tostring = False
     >>> f['chr1'][:10] # doctest: +NORMALIZE_WHITESPACE
@@ -80,16 +83,16 @@ get back an array directly...
     array(['A', 'A', 'A', 'A'], 
           dtype='|S1')
 
-mask a sub-sequence:
+mask a sub-sequence
+::
+
     >>> a[11:13] = np.array('N', dtype='c')
     >>> a[10:14].tostring()
     'ANNA'
 
 
------------------------
 Backends (Record class)
------------------------
-
+=======================
 It's also possible to specify another record class as the underlying work-horse
 for slicing and reading. Currently, there's just the default: 
 
@@ -101,6 +104,7 @@ for slicing and reading. Currently, there's just the default:
 it's possible to create your own using a sub-class of FastaRecord. see the source 
 for details.
 Next addition will be a pytables/hdf5 backend.
+::
 
     >>> from pyfasta import FastaRecord # default is NpyFastaRecord
     >>> f = Fasta('tests/data/three_chrs.fasta', record_class=FastaRecord)
@@ -109,9 +113,9 @@ Next addition will be a pytables/hdf5 backend.
 
 other than the repr, it should behave exactly like the Npy record class backend
 
-----------------------
+
 Command Line Interface
-----------------------
+======================
 there's also a command line interface to manipulate / view fasta files.
 the `pyfasta` executable is installed via setuptools, running it will show
 help text.
@@ -136,7 +140,10 @@ a new fasta file. the args are a list of sequences to extract.
   $ pyfasta **extract** --header --fasta test/data/three_chrs.fasta seqa seqb seqc
 
 
-cleanup (though for real use these will remain for faster access)
+cleanup 
+=======
+(though for real use these will remain for faster access)
+::
 
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
