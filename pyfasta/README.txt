@@ -109,9 +109,39 @@ Next addition will be a pytables/hdf5 backend.
 
 other than the repr, it should behave exactly like the Npy record class backend
 
+----------------------
+Command Line Interface
+----------------------
+there's also a command line interface to manipulate / view fasta files.
+the `pyfasta` executable is installed via setuptools, running it will show
+help text.
+
+split a fasta file into 6 new files of relatively even size:
+
+  $ pyfasta **split** -n 6 original.fasta
+
+create a new fasta file with the sequence split into 10K-mers:
+
+  $ pyfasta **split** -n 1 -k 10000 original.fasta
+
+
+show some info about the file (and show gc content):
+
+  $ pyfasta **info** --gc test/data/three_chrs.fasta
+
+
+extract sequence from the file. use the header flag to make
+a new fasta file. the args are a list of sequences to extract.
+
+  $ pyfasta **extract** --header --fasta test/data/three_chrs.fasta seqa seqb seqc
+
 
 cleanup (though for real use these will remain for faster access)
 
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
     >>> os.unlink('tests/data/three_chrs.fasta.flat')
+
+
+
+
