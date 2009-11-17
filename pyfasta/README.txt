@@ -30,8 +30,6 @@ Usage
     >>> f['chr1']
     NpyFastaRecord(0..80)
 
-    >>> f['chr1'][:10]
-    'ACTGACTGAC'
 
 Slicing
 -------
@@ -52,7 +50,7 @@ Slicing
     >>> f['chr1'][1:9]
     'CTGACTGA'
 
-    # with reverse complement for - strand
+    # with reverse complement (automatic for - strand)
     >>> f.sequence({'chr': 'chr1', 'start': 2, 'stop': 9, 'strand': '-'})
     'TCAGTCAG'
 
@@ -116,9 +114,13 @@ split a fasta file into 6 new files of relatively even size:
 
   $ pyfasta **split** -n 6 original.fasta
 
-create a new fasta file with the sequence split into 10K-mers:
+create 1 new fasta file with the sequence split into 10K-mers:
 
   $ pyfasta **split** -n 1 -k 10000 original.fasta
+
+2 new fasta files with the sequence split into 10K-mers with 2K overlap:
+
+  $ pyfasta **split** -n 2 -k 10000 -o 2000 original.fasta
 
 
 show some info about the file (and show gc content):
@@ -140,7 +142,3 @@ cleanup
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
     >>> os.unlink('tests/data/three_chrs.fasta.flat')
-
-
-
-
