@@ -29,13 +29,6 @@ class FastaRecord(object):
     def __len__(self):
         return self.stop - self.start
 
-    def as_kmers(self, k):
-        kmax = len(self)
-        i = 0
-        while i < kmax:
-            yield i, self[i:i + k]
-            i += k
-
     @classmethod
     def prepare(klass, fasta_obj, seqinfo_generator):
         """
@@ -226,6 +219,14 @@ class Fasta(dict):
     def is_up_to_date(klass, a, b):
         return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
 
+    @classmethod
+    def as_kmers(klass, seq, k, overlap=0):
+        kmax = len(seq)
+        assert overlap < k, ('overlap must be < kmer length')
+        i = 0
+        while i < kmax:
+            yield i, seq[i:i + k]
+            i += k - overlap
 
     def gen_seq_info(self):
         """remove all newlines from the sequence in a fasta file

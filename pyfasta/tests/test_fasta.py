@@ -58,7 +58,8 @@ class FastaTest(unittest.TestCase):
 
     def test_kmers(self):
         seq = str(self.f['chr2'])
-        kmers = list(self.f['chr2'].as_kmers(10))
+
+        kmers = list(Fasta.as_kmers(self.f['chr2'], 10))
         self.assertEqual(len(kmers), len(seq) / 10)
         self.assertEqual(kmers[0], (0, seq[:10]))
 
@@ -68,10 +69,25 @@ class FastaTest(unittest.TestCase):
         self.assert_(seqs[-1][-1], 'T')
 
         seq = str(self.f['chr3'])
-        kmers = list(self.f['chr3'].as_kmers(1))
+        kmers = list(Fasta.as_kmers(self.f['chr3'], 1))
         self.assertEquals(kmers[2][0], 2)
         seqs = [k[1] for k in kmers]
         self.assertEqual("".join(seqs), seq)
+
+    def test_kmer_overlap(self):
+        chr2 = self.f['chr2']
+
+        kmers = Fasta.as_kmers(chr2, 10, overlap=2)
+        for i, k in enumerate(list(kmers)[:-1]):
+            self.assertEquals(len(k[1]), 10)
+            self.assertEquals(k[0], (i * (10 - 2)))
+
+        kmers = Fasta.as_kmers(chr2, 10, overlap=4)
+        seqs = [k[1] for k in kmers]
+        paired_seqs = zip(seqs[0:-1], seqs[1:])
+        for a, b in paired_seqs:
+            if len(a) < 4 or len(b) < 4: continue
+            self.assertEqual(a[-4:], b[:4])
 
     def test_slice_size(self):
         self.assertEqual(self.f['chr3'][:7], 'ACGCATT')

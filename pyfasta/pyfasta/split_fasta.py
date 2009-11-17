@@ -43,13 +43,16 @@ def split(args):
 
     parser.add_option("-n", "--n", type="int", dest="nsplits", 
                             help="number of new files to create")
+    parser.add_option("-o", "--overlap", type="int", dest="overlap", 
+                            help="overlap in basepairs", default=0)
     parser.add_option("-k", "--kmers", type="int", dest="kmers", default=-1,
                      help="""\
-    split big files into pieces of this size default
-    default of -1 means do not split a reasonable value would be 10K""")
-    options, (fasta, ) = parser.parse_args(args)
-    if not (fasta):
+    split big files into pieces of this size in basepairs. default
+    default of -1 means do not split a reasonable value would be 10Kbp""")
+    options, fasta = parser.parse_args(args)
+    if not (fasta and options.nsplits):
         sys.exit(parser.print_help())
+    fasta, = fasta
 
     names = newnames(fasta, options.nsplits)
 
@@ -58,13 +61,13 @@ def split(args):
     if options.kmers == -1:
         return without_kmers(f, fhs)
     else: 
-        return with_kmers(f, fhs, options.kmers)
+        return with_kmers(f, fhs, options.kmers, options.overlap)
 
-def with_kmers(f, fhs, k):
+def with_kmers(f, fhs, k, overlap):
     i = 0
     for seqid in f.keys():
         seq = f[seqid]
-        for (start0, subseq) in seq.as_kmers(k):
+        for (start0, subseq) in Fasta.as_kmers(seq, k, overlap=overlap):
             fh = fhs[i % len(fhs)]
             print >>fh, ">%s" % format_kmer(seqid, start0, k)
             print >>fh, subseq
