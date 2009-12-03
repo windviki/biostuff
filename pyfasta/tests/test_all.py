@@ -23,18 +23,34 @@ def test_classes():
         yield check_kmer_overlap, f
         yield check_slice_size, f
         yield check_slice, f
+        yield check_full_slice, f
         yield check_array_copy, f
+        yield check_array, f
+
+        del f
+
+        yield check_reload, klass
 
         _cleanup()
 
 
 def check_keys(f):
     assert sorted(f.keys()) == ['chr1', 'chr2', 'chr3']
+    assert sorted(f.iterkeys()) == ['chr1', 'chr2', 'chr3']
 
 
+def check_reload(klass):
+    f = Fasta('tests/data/three_chrs.fasta', record_class=klass)
+    assert f
+
+def check_full_slice(f):
+    for k in f.keys():
+        assert str(f[k]) == f[k][:]
+        assert str(f[k]) == f[k][0:]
 
 
-
+        assert str(f[k])[::2] == f[k][0:][::2]
+        assert str(f[k])[::2] == f[k][:][::2]
     
 def check_misc(f, klass):
     seq = f['chr2']
@@ -85,6 +101,11 @@ def check_bounds(f):
 
 
     assert (c2[-800:-810] == "")
+
+def check_array(f):
+
+    s = f.sequence({'chr': 'chr2', 'start': 1, 'stop':3}, asstring=False)
+    assert np.all(s == np.array(['T', 'A', 'A'], dtype="|S1"))
 
 
 
