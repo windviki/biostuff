@@ -3,7 +3,6 @@ import os
 sys.path.insert(0, os.path.abspath("."))
 import pyfasta
 from pyfasta import Fasta
-print pyfasta
 
 import time
 import random

@@ -142,3 +142,9 @@ cleanup
     >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
     >>> os.unlink('tests/data/three_chrs.fasta.flat')
+
+Testing
+=======
+::
+
+  $ python setup.py nosetests

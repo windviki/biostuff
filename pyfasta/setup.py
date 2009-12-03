@@ -15,6 +15,7 @@ setup(name='pyfasta',
       license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
+      tests_require=['nose'],
       test_suite='nose.collector',
       zip_safe=False,
       install_requires=[

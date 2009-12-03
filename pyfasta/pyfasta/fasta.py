@@ -55,6 +55,13 @@ class FastaRecord(object):
         return open(flat_file, 'rb')
     
     def _adjust_slice(self, islice):
+        l = len(self)
+        """
+        if not islice.start is None:
+            istart = self.stop + islice.start
+            while istart < 0:
+                istart += l
+        """
         if not islice.start is None and islice.start < 0:
             istart = self.stop + islice.start
         else:
@@ -68,8 +75,11 @@ class FastaRecord(object):
 
         # this will give empty string
         if istart > self.stop: return self.stop, self.stop 
-        if istop > self.stop: 
-            istop = self.stop
+        if istart < self.start: istart = self.start
+
+        if istop  < self.start: istop = self.start
+        elif istop > self.stop: istop = self.stop
+
         return istart, istop
 
     def __getitem__(self, islice):
@@ -77,6 +87,8 @@ class FastaRecord(object):
         fh.seek(self.start)
         if isinstance(islice, (int, long)):
             if islice < 0:
+                if -islice > self.stop - self.start:
+                    raise IndexError
                 fh.seek(self.stop + islice)
             else:
                 fh.seek(self.start + islice)
@@ -145,6 +157,7 @@ class NpyFastaRecord(FastaRecord):
                 islice += self.start
             else:
                 islice += self.stop
+                if islice < 0: raise IndexError
             return self.mm[islice]
 
         start, stop = self._adjust_slice(islice)
