@@ -1,5 +1,12 @@
-from pyfasta import Fasta, NpyFastaRecord, MemoryRecord, FastaRecord
+from pyfasta import Fasta
+from pyfasta.records import NpyFastaRecord, MemoryRecord, FastaRecord
 record_classes = [NpyFastaRecord, MemoryRecord, FastaRecord]
+try:
+    from pyfasta.records import TCRecord
+    record_classes.append(TCRecord)
+except ImportError:
+    pass
+
 import os
 from nose.tools import assert_raises
 import numpy as np

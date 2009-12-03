@@ -1,13 +1,14 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.1'
+version = '0.3.2'
 
 setup(name='pyfasta',
       version=version,
-      description="fast, memory-efficient, pythonic access to fasta sequence files",
+      description=\
+        "fast, memory-efficient, pythonic access to fasta sequence files",
       url="http://bitbucket.org/brentp/biostuff/",
-      long_description=open('README.txt').read(),
+      long_description=open('README.txt').read() + "\n" + open('CHANGELOG.txt').read(),
       classifiers=["Topic :: Scientific/Engineering :: Bio-Informatics"],
       keywords='bioinformatics blast fasta',
       author='brentp',
@@ -25,4 +26,4 @@ setup(name='pyfasta',
       entry_points={
       'console_scripts': ['pyfasta = pyfasta:main']
       },
-      )
+  )

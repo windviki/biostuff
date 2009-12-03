@@ -3,11 +3,13 @@ import numpy as np
 import sys
 import os
 
-__all__ = ('FastaRecord', 'NpyFastaRecord', 'MemoryRecord')
+__all__ = ['FastaRecord', 'NpyFastaRecord', 'MemoryRecord']
 
 
 def is_up_to_date(a, b):
     return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
+
+
 
 
 class FastaRecord(object):
@@ -133,6 +135,7 @@ class FastaRecord(object):
             'data': buffer(self)
         }
 
+
 class NpyFastaRecord(FastaRecord):
     __slots__ = ('start', 'stop', 'mm', 'tostring')
 
@@ -196,3 +199,38 @@ class MemoryRecord(FastaRecord):
 
     def __len__(self):
         return len(self.seq)
+
+
+
+try:
+    import tc
+    class HDB(tc.HDB):
+        def __getitem__(self, k):
+            return cPickle.loads(tc.HDB.get(self, k))
+        def __setitem__(self, k, v):
+            tc.HDB.put(self, k, cPickle.dumps(v, -1))
+
+    class TCRecord(NpyFastaRecord):
+        idx = ".tct"
+
+        @classmethod
+        def prepare(klass, fasta_obj, seqinfo_generator):
+            f = fasta_obj.fasta_name
+            if klass.is_current(f):
+                db = HDB()
+                db.open(f + klass.idx, tc.HDBOREADER)
+                return db, klass.modify_flat(f + klass.ext)
+
+            db = HDB(f + klass.idx, tc.HDBOWRITER | tc.HDBOCREAT)
+            flatfh = open(f + klass.ext, 'wb')
+            for seqid, start, stop, seq in seqinfo_generator:
+                flatfh.write(seq)
+                db[seqid] = (start, stop)
+
+            db.sync()
+            flatfh.close()
+            return db, klass.modify_flat(f + klass.ext)
+
+    __all__.append('TCRecord')
+except ImportError:
+    pass

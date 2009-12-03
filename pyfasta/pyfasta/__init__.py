@@ -1,5 +1,6 @@
 import sys
-from fasta import Fasta, FastaRecord, NpyFastaRecord, MemoryRecord
+from fasta import Fasta
+from records import *
 from split_fasta import split
 
 def main():

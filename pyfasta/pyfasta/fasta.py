@@ -3,7 +3,7 @@ import string
 import mmap
 import numpy as np
 
-from records import NpyFastaRecord, MemoryRecord, FastaRecord
+from records import NpyFastaRecord, FastaRecord
 
 _complement = string.maketrans('ATCGatcgNnXx', 'TAGCtagcNnXx')
 complement  = lambda s: s.translate(_complement)

@@ -90,10 +90,13 @@ for slicing and reading. Currently, there's just the default:
   * FastaRecord, which uses using fseek/fread
   * MemoryRecord which reads everything into memory and must reparse the original
     fasta every time.
+  * TCRecord which is identical to NpyFastaRecord except that it saves the index
+    in a TokyoCabinet hash database, for cases when there are enough records that
+    loading the entire index from a pickle into memory is unwise. (NOTE: that the
+    sequence is not loaded into memory in either case).
 
-it's possible to create your own using a sub-class of FastaRecord. see the source 
-for details.
-Next addition will be a pytables/hdf5 backend.
+It's possible to specify the class used with the `record_class` kwarg to the `Fasta`
+constructor:
 ::
 
     >>> from pyfasta import FastaRecord # default is NpyFastaRecord
@@ -103,6 +106,8 @@ Next addition will be a pytables/hdf5 backend.
 
 other than the repr, it should behave exactly like the Npy record class backend
 
+it's possible to create your own using a sub-class of FastaRecord. see the source 
+in pyfasta/records.py for details.
 
 Command Line Interface
 ======================
@@ -145,6 +150,8 @@ cleanup
 
 Testing
 =======
+there is currently > 99% test coverage for the 2 modules and all included 
+record classes. to run the tests:
 ::
 
   $ python setup.py nosetests
