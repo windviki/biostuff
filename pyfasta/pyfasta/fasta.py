@@ -1,188 +1,12 @@
 import os
-import cPickle
 import string
 import mmap
 import numpy as np
-import sys
+
+from records import NpyFastaRecord, FastaRecord
 
 _complement = string.maketrans('ATCGatcgNnXx', 'TAGCtagcNnXx')
 complement  = lambda s: s.translate(_complement)
-
-
-class FastaRecord(object):
-    __slots__ = ('fh', 'start', 'stop')
-    ext = ".flat"
-    idx = ".gdx"
-
-    @classmethod
-    def is_current(klass, fasta_name):
-        utd = Fasta.is_up_to_date(fasta_name + klass.ext, fasta_name) 
-        if not utd: return False
-        return Fasta.is_up_to_date(fasta_name + klass.idx, fasta_name)
-
-    def __init__(self, fh, start, stop):
-
-        self.fh      = fh
-        self.stop    = stop
-        self.start   = start
-
-    def __len__(self):
-        return self.stop - self.start
-
-    @classmethod
-    def prepare(klass, fasta_obj, seqinfo_generator):
-        """
-        returns the __getitem__'able index. and the thing to get the seqs from.
-        """
-        f = fasta_obj.fasta_name
-        if klass.is_current(f):
-            return cPickle.load(open(f + klass.idx)), \
-                               klass.modify_flat(f + klass.ext)
-
-        idx = {}
-        flatfh = open(f + klass.ext, 'wb')
-        for seqid, start, stop, seq in seqinfo_generator:
-            flatfh.write(seq)
-            idx[seqid] = (start, stop)
-            
-        cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
-        flatfh.close()
-
-        return idx, klass.modify_flat(f + klass.ext)
-    
-    @classmethod
-    def modify_flat(klass, flat_file):
-        return open(flat_file, 'rb')
-    
-    def _adjust_slice(self, islice):
-        if not islice.start is None and islice.start < 0:
-            istart = self.stop + islice.start
-        else:
-            istart = self.start + (0 if islice.start is None else islice.start)
-
-
-        if not islice.stop is None and islice.stop < 0:
-            istop = self.stop + islice.stop
-        else:
-            istop = self.stop if islice.stop is None else (self.start + islice.stop)
-
-        # this will give empty string
-        if istart > self.stop: return self.stop, self.stop 
-        if istop > self.stop: 
-            istop = self.stop
-        return istart, istop
-
-    def __getitem__(self, islice):
-        fh = self.fh
-        fh.seek(self.start)
-        if isinstance(islice, (int, long)):
-            if islice < 0:
-                fh.seek(self.stop + islice)
-            else:
-                fh.seek(self.start + islice)
-            return fh.read(1)
-
-        if islice.start == 0 and islice.stop == sys.maxint:
-            if islice.step in (1, None):
-                return fh.read(self.stop - self.start)
-            return fh.read(self.stop - self.start)[::islice.step]
-        
-        istart, istop = self._adjust_slice(islice)
-        if istart is None: return ""
-        l = istop - istart
-        if l == 0: return ""
-
-
-        fh.seek(istart)
-
-        if islice.step in (1, None):
-            try:
-                return fh.read(l)
-            except:
-                print "\n", l, fh
-                raise
-
-        return fh.read(l)[::islice.step]
-
-
-    def __str__(self):
-        return self[:]
-
-    def __repr__(self):
-        return "%s('%s', %i..%i)" % (self.__class__.__name__, self.fh.name,
-                                   self.start, self.stop)
-
-    @property
-    def __array_interface__(self):
-        return {
-            'shape': (len(self), ),
-            'typestr': '|S1',
-            'version': 3,
-            'data': buffer(self)
-        }
-
-class NpyFastaRecord(FastaRecord):
-    __slots__ = ('start', 'stop', 'mm', 'tostring')
-
-    def __init__(self, mm, start, stop, tostring=True):
-        self.mm = mm
-        self.start = start
-        self.stop = stop
-        self.tostring = tostring
-
-    def __repr__(self):
-        return "%s(%i..%i)" % (self.__class__.__name__,
-                                   self.start, self.stop)
-
-    @classmethod
-    def modify_flat(klass, flat_file):
-        mm = np.memmap(flat_file, dtype="S1", mode="r+")
-        return mm
-
-    def getdata(self, islice):
-        if isinstance(islice, (int, long)):
-            if islice >= 0:
-                islice += self.start
-            else:
-                islice += self.stop
-            return self.mm[islice]
-
-        start, stop = self._adjust_slice(islice)
-        return self.mm[start:stop:islice.step]
-
-    def __getitem__(self, islice):
-        d = self.getdata(islice)
-        return d.tostring() if self.tostring else d
-
-    @property
-    def __array_interface__(self):
-        return {
-            'shape': (len(self), ),
-            'typestr': '|S1',
-            'version': 3,
-            'data': self[:]
-        }
-
-
-class MemoryRecord(FastaRecord):
-    @classmethod
-    def prepare(klass, fasta_obj, seqinfo_generator):
-        f = fasta_obj.fasta_name
-        seqs = {}
-        idx = {}
-        for seqid, start, stop, seq in seqinfo_generator:
-            seqs[seqid] = (seq, None)
-            
-        return seqs, seqs
-
-    def __init__(self, _, seq, _none):
-        self.seq = seq
-
-    def __getitem__(self, slice):
-        return self.seq.__getitem__(slice)
-
-    def __len__(self):
-        return len(self.seq)
 
 class Fasta(dict):
     def __init__(self, fasta_name, record_class=NpyFastaRecord):
@@ -209,15 +33,9 @@ class Fasta(dict):
         """
         self.fasta_name = fasta_name
         self.record_class = record_class
-        #self.gdx = fasta_name + record_class.idx
-        #self.flat = fasta_name + record_class.ext
         self.index, self.prepared = self.record_class.prepare(self, self.gen_seq_info())
 
         self.chr = {}
-
-    @classmethod
-    def is_up_to_date(klass, a, b):
-        return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
 
     @classmethod
     def as_kmers(klass, seq, k, overlap=0):
@@ -247,13 +65,12 @@ class Fasta(dict):
 
             seq  = mm[snewline + 1: sheader].replace('\n','')
 
-            # TODO: make this more efficient.
             stop = start + len(seq)
             yield header[1:].strip(), start, stop, seq
 
             start = stop
             snewline = mm.find('\n', sheader)
-
+        fh.close()
 
     def __len__(self):
         # might not work for all backends?
@@ -275,15 +92,6 @@ class Fasta(dict):
         c = self.index[i]
         self.chr[i] = self.record_class(self.prepared, c[0], c[1])
         return self.chr[i]
-
-    @classmethod
-    def _load_index(self, path):
-        """ """
-        gdx = open(path, 'rb')
-        try:
-            return cPickle.load(gdx)
-        finally:
-            gdx.close()
 
     def sequence(self, f, asstring=True, auto_rc=True
             , exon_keys=None):
@@ -388,10 +196,3 @@ class Fasta(dict):
     def iteritems(self):
         for k in self.keys():
             yield k, self[k]
-
-
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
-

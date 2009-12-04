@@ -130,7 +130,13 @@ class SimpleTable(tables.Table):
     def insert(self, data, row, attr=False):
         for col in self.colnames:
             if col in self.enums:
-                row[col] = self.enums[col][data[col]]
+                try:
+                    row[col] = self.enums[col][data[col]]
+                except:
+                    import sys
+                    print >>sys.stderr, "!!!", col, "!!!"
+                    print >>sys.stderr, "!!!", data[col], "!!!"
+                    raise
             else:
                 row[col] = data[col]
         

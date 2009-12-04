@@ -1,0 +1,13 @@
+Changes
+=======
+
+0.3.2
+-----
+
+* separate out backends into records.py
+
+* use nosetests (python setup.py nosetests)
+
+* add a TCRecord backend for next-gen sequencing availabe if tc is (easy-)installed.
+
+* improve test coverage.

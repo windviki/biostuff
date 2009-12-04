@@ -1,5 +1,6 @@
-from fasta import *
 import sys
+from fasta import Fasta
+from records import *
 from split_fasta import split
 
 def main():
@@ -31,7 +32,15 @@ def main():
 
 def info(args):
     """
-    >>> info(['--fasta', 'tests/data/three_chrs.fasta'])
+    >>> info(['tests/data/three_chrs.fasta'])
+    <BLANKLINE>
+    tests/data/three_chrs.fasta
+    ===========================
+    >chr3 length:3600 
+    >chr2 length:80 
+    >chr1 length:80 
+    <BLANKLINE>
+    3760 basepairs in 3 sequences
     """
     import optparse
     parser = optparse.OptionParser("""\

@@ -178,6 +178,9 @@ def without_kmers(f, fhs):
 def find_name_from_len(lmin, lens):
     """
     reverse lookup, get name from dict
+    >>> lens = {'chr1': 4, 'chr2': 5, 'chr3': 4}
+    >>> find_name_from_len(5, lens)
+    'chr2'
     """
     for fname, l in lens.iteritems():
         if l == lmin: 
