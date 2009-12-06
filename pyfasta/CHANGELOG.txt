@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.3.3
+-----
+
+* include this file in the tar ball (thanks wen h.)
+
 0.3.2
 -----
 

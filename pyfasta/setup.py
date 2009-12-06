@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.3.2'
+version = '0.3.3'
 
 setup(name='pyfasta',
       version=version,
@@ -15,6 +15,7 @@ setup(name='pyfasta',
       author_email='bpederse@gmail.com',
       license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
+      package_data={'':['CHANGELOG.txt']},
       include_package_data=True,
       tests_require=['nose'],
       test_suite='nose.collector',
