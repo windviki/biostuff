@@ -27,8 +27,8 @@ setup(name='nwalign',
       test_suite='nose.collector',
       include_package_data=True,
       zip_safe=False,
-      packages=['.'],
-      package_dir={'': 'nwalign'},
+      packages=['nwalign'],
+      package_dir={'nwalign': 'nwalign'},
       package_data = {'nwalign': ['*.pyx']},
       install_requires=[
           'numpy', 'cython'
