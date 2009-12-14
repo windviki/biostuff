@@ -6,7 +6,7 @@ import sys
 import optparse
 
 
-def newnames(oldname, n, kmers=None, overlap=None):
+def newnames(oldname, n, kmers=None, overlap=None, header=None):
     """
     >>> newnames('some.fasta', 1)
     ['some.split.fasta']
@@ -75,6 +75,13 @@ def split(args):
     the output will be some.1.fasta, some.2.fasta ... some.6.fasta
     the sizes will be as even as reasonable.
    """)
+    parser.add_option("--header", dest="header", metavar="FILENAME_FMT",
+       help="""this overrides all other options. if specified, it will
+               split the file into a separate file for each header. it
+               will be a template specifying the file name for each new file.
+               e.g.:    "%(fasta)s.%(seqid)s.fasta"
+               where 'fasta' is the basename of the input fasta file and seqid
+               is the header of each entry in the fasta file.""" ,default=None)
 
     parser.add_option("-n", "--n", type="int", dest="nsplits", 
                             help="number of new files to create")
@@ -83,26 +90,49 @@ def split(args):
     parser.add_option("-k", "--kmers", type="int", dest="kmers", default=-1,
                      help="""\
     split big files into pieces of this size in basepairs. default
-    default of -1 means do not split a reasonable value would be 10Kbp""")
+    default of -1 means do not split the sequence up into k-mers, just
+    split based on the headers. a reasonable value would be 10Kbp""")
     options, fasta = parser.parse_args(args)
-    if not (fasta and options.nsplits):
+    if not (fasta and (options.nsplits or options.header)):
         sys.exit(parser.print_help())
-    fasta, = fasta
+
+    if isinstance(fasta, (tuple, list)):
+        assert len(fasta) == 1, fasta
+        fasta = fasta[0]
 
     kmer = options.kmers if options.kmers != -1 else None
     overlap = options.overlap if options.overlap != 0 else None
-    names = newnames(fasta, options.nsplits, kmers=kmer, overlap=overlap)
-
-    fhs = [open(n, 'wb') for n in names]
     f = Fasta(fasta)
+    if options.header:
+        names = [(seqid, options.header % \
+                      dict(fasta=f.fasta_name, seqid=seqid)) \
+                                       for seqid in f.keys()]
+        if len(names) > 0:
+            assert names[0][1] != names[1][1], ("problem with header format", options.header)
+        fhs = dict([(seqid, open(fn, 'wb')) for seqid, fn in names])
+        return with_header_names(f, fhs)
+    else:
+        names = newnames(fasta, options.nsplits, kmers=kmer, overlap=overlap, 
+                     header=options.header)
+
+        fhs = [open(n, 'wb') for n in names]
     if options.kmers == -1:
         return without_kmers(f, fhs)
     else: 
         return with_kmers(f, fhs, options.kmers, options.overlap)
 
+def with_header_names(f, fhs):
+    """
+    split the fasta into the files in fhs by headers.
+    """
+    for seqid, fh in fhs.iteritems():
+        print >>fh, ">%s" % seqid
+        print >>fh, str(f[seqid])
+        fh.close()
+
 def with_kmers(f, fhs, k, overlap):
     """
-    splice the sequences in Fasta object `f` into pieces of length `k` 
+    split the sequences in Fasta object `f` into pieces of length `k` 
     with the given `overlap` the results are written to the array of files
     `fhs`
     """

@@ -3,7 +3,7 @@ import string
 import mmap
 import numpy as np
 
-from records import NpyFastaRecord, FastaRecord
+from records import NpyFastaRecord
 
 _complement = string.maketrans('ATCGatcgNnXx', 'TAGCtagcNnXx')
 complement  = lambda s: s.translate(_complement)
@@ -11,7 +11,7 @@ complement  = lambda s: s.translate(_complement)
 class Fasta(dict):
     def __init__(self, fasta_name, record_class=NpyFastaRecord):
         """
-            >>> from pyfasta import Fasta
+            >>> from pyfasta import Fasta, FastaRecord
 
             >>> f = Fasta('tests/data/three_chrs.fasta', 
             ...                          record_class=FastaRecord)
