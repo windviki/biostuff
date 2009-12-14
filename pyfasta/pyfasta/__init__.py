@@ -94,11 +94,11 @@ def extract(args):
     """
 
     import optparse
-    parser = optparse.OptionParser("""... send in options + a list of sequences to extract
-               e.g.:
+    parser = optparse.OptionParser("""extract some sequences from a fasta file. e.g.:
                pyfasta extract --fasta some.fasta --header at2g26540 at3g45640""")
     parser.add_option("--fasta", dest="fasta", help="path to the fasta file")
     parser.add_option("--header", dest="header", help="include headers", action="store_true", default=False)
+    parser.add_option("--exclude", dest="exclude", help="extract all files EXCEPT those listed", action="store_true", default=False)
     parser.add_option("--file", dest="file", help="if this flag is used, the sequences to extract" \
                                                   + "are read from the file specified in args"
                       , action="store_true", default=False)
@@ -109,6 +109,8 @@ def extract(args):
     f = Fasta(options.fasta)
     if options.file:
         seqs = (x.strip() for x in open(seqs[0]))
+    if options.exclude:
+        seqs = sorted(set(f.keys()).difference(seqs))
 
     for seqname in seqs:
         seq = f[seqname]
