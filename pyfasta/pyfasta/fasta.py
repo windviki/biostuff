@@ -77,12 +77,13 @@ class Fasta(dict):
         return len(self.index)
 
     def iterkeys(self):
-        for k in self.keys(): yield k
+        for k in self.index.iterkeys(): yield k
+
     def keys(self):
         return self.index.keys()
     
     def __contains__(self, key):
-        return key in self.index.keys()
+        return key in self.index
 
     def __getitem__(self, i):
         # this implements the lazy loading

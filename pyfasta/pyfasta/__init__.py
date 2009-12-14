@@ -110,7 +110,7 @@ def extract(args):
     if options.file:
         seqs = (x.strip() for x in open(seqs[0]))
     if options.exclude:
-        seqs = sorted(set(f.keys()).difference(seqs))
+        seqs = sorted(frozenset(f.iterkeys()).difference(seqs))
 
     for seqname in seqs:
         seq = f[seqname]

@@ -23,6 +23,7 @@ def test_classes():
         f = Fasta('tests/data/three_chrs.fasta', record_class=klass)
         yield check_keys, f
         yield check_misc, f, klass
+        yield check_contains, f
         yield check_shape, f
         yield check_bounds, f
         yield check_tostring, f
@@ -58,6 +59,11 @@ def check_full_slice(f):
 
         assert str(f[k])[::2] == f[k][0:][::2]
         assert str(f[k])[::2] == f[k][:][::2]
+
+def check_contains(f):
+
+    assert not '_________' in f
+    assert 'chr2' in f
     
 def check_misc(f, klass):
     seq = f['chr2']
