@@ -1,5 +1,5 @@
 import sys
-from fasta import Fasta
+from fasta import Fasta, complement
 from records import *
 from split_fasta import split
 
