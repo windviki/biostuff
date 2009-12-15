@@ -1,6 +1,13 @@
 Changes
 =======
 
+0.3.4
+-----
+
+* restore python2.5 compatiblity.
+* CLI: add ability to exclude sequence from extract
+* CLI: allow spliting based on header.
+
 0.3.3
 -----
 

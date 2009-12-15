@@ -99,8 +99,9 @@ def extract(args):
     parser.add_option("--fasta", dest="fasta", help="path to the fasta file")
     parser.add_option("--header", dest="header", help="include headers", action="store_true", default=False)
     parser.add_option("--exclude", dest="exclude", help="extract all files EXCEPT those listed", action="store_true", default=False)
-    parser.add_option("--file", dest="file", help="if this flag is used, the sequences to extract" \
-                                                  + "are read from the file specified in args"
+    parser.add_option("--file", dest="file", help=\
+                      "if this flag is used, the sequences to extract" \
+                      "are read from the file specified in args"
                       , action="store_true", default=False)
     options, seqs = parser.parse_args(args)
     if not (options.fasta and len(seqs)):
