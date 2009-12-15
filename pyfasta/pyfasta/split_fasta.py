@@ -31,8 +31,8 @@ def newnames(oldname, n, kmers=None, overlap=None, header=None):
     if overlap and overlap % 1000 == 0: overlap = "%iK" % (overlap/1000)
 
     p = oldname.rfind("fa")
-    kstr = ("%smer." % kmers) if kmers is not None else ""
-    ostr = ("%soverlap." % overlap) if overlap is not None else ""
+    kstr = kmers is not None and ("%smer." % kmers) or ""
+    ostr = overlap is not None and ("%soverlap." % overlap) or ""
     if p != -1:
         pattern = oldname[:p] + "%s." + kstr + ostr + oldname[p:]
     else:

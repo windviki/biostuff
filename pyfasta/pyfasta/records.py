@@ -68,13 +68,16 @@ class FastaRecord(object):
         if not islice.start is None and islice.start < 0:
             istart = self.stop + islice.start
         else:
-            istart = self.start + (0 if islice.start is None else islice.start)
+            if islice.start is None:
+                istart = self.start
+            else:
+                istart = self.start + islice.start
 
 
         if not islice.stop is None and islice.stop < 0:
             istop = self.stop + islice.stop
         else:
-            istop = self.stop if islice.stop is None else (self.start + islice.stop)
+            istop = islice.stop is None and self.stop or (self.start + islice.stop)
 
         # this will give empty string
         if istart > self.stop: return self.stop, self.stop 
