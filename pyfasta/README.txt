@@ -119,6 +119,10 @@ split a fasta file into 6 new files of relatively even size:
 
   $ pyfasta **split** -n 6 original.fasta
 
+split the fasta file into one new file per header with "%(seqid)s" being filled into each filename.:
+  
+  $ pyfasta **split** --header "%(seqid)s.fasta" original.fasta
+
 create 1 new fasta file with the sequence split into 10K-mers:
 
   $ pyfasta **split** -n 1 -k 10000 original.fasta
@@ -138,6 +142,9 @@ a new fasta file. the args are a list of sequences to extract.
 
   $ pyfasta **extract** --header --fasta test/data/three_chrs.fasta seqa seqb seqc
 
+extract sequence from a file using a file containing the headers *not* wanted in the new file:
+
+  $ pyfasta extract --header --fasta input.fasta --exclude --file seqids_to_exclude.txt
 
 cleanup 
 =======

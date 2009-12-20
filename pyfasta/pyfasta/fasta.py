@@ -1,6 +1,4 @@
-import os
 import string
-import mmap
 import numpy as np
 
 from records import NpyFastaRecord
@@ -9,7 +7,8 @@ _complement = string.maketrans('ATCGatcgNnXx', 'TAGCtagcNnXx')
 complement  = lambda s: s.translate(_complement)
 
 class Fasta(dict):
-    def __init__(self, fasta_name, record_class=NpyFastaRecord):
+    def __init__(self, fasta_name, record_class=NpyFastaRecord,
+                flatten_inplace=False):
         """
             >>> from pyfasta import Fasta, FastaRecord
 
@@ -33,7 +32,9 @@ class Fasta(dict):
         """
         self.fasta_name = fasta_name
         self.record_class = record_class
-        self.index, self.prepared = self.record_class.prepare(self, self.gen_seq_info())
+        self.index, self.prepared = self.record_class.prepare(self,
+                                              self.gen_seqs_with_headers(),
+                                              flatten_inplace)
 
         self.chr = {}
 
@@ -46,30 +47,25 @@ class Fasta(dict):
             yield i, seq[i:i + k]
             i += k - overlap
 
-    def gen_seq_info(self):
+    def gen_seqs_with_headers(self):
         """remove all newlines from the sequence in a fasta file
         and generate starts, stops to be used by the record class"""
         fh = open(self.fasta_name, 'r+')
-        mm = mmap.mmap(fh.fileno(), os.path.getsize(self.fasta_name))
-
         # do the flattening (remove newlines)
-        sheader = mm.find('>')
-        snewline = mm.find('\n', sheader)
         idx = {}
-        start = 0
-        len_mm = len(mm)
-        while sheader < len_mm:
-            header = mm[sheader:snewline + 1]
-            sheader = mm.find('>', snewline)
-            if sheader == -1: sheader = len(mm)
+        header = fh.readline()
+        while header:
+            assert header[0] == ">", header
+            next_header = None
+            lineseq = fh.readline().rstrip()
+            seq = []
+            while lineseq and lineseq[0] != '>':
+                seq.append(lineseq)
+                lineseq = fh.readline().rstrip()
+                 
+            yield header[1:].strip(), "".join(seq)
+            header = lineseq
 
-            seq  = mm[snewline + 1: sheader].replace('\n','')
-
-            stop = start + len(seq)
-            yield header[1:].strip(), start, stop, seq
-
-            start = stop
-            snewline = mm.find('\n', sheader)
         fh.close()
 
     def __len__(self):

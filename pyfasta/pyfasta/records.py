@@ -33,7 +33,7 @@ class FastaRecord(object):
         return self.stop - self.start
 
     @classmethod
-    def prepare(klass, fasta_obj, seqinfo_generator):
+    def prepare(klass, fasta_obj, seqinfo_generator, flatten_inplace):
         """
         returns the __getitem__'able index. and the thing to get the seqs from.
         """
@@ -44,8 +44,10 @@ class FastaRecord(object):
 
         idx = {}
         flatfh = open(f + klass.ext, 'wb')
-        for seqid, start, stop, seq in seqinfo_generator:
+        for seqid, seq in seqinfo_generator:
+            start = flatfh.tell()
             flatfh.write(seq)
+            stop = flatfh.tell() 
             idx[seqid] = (start, stop)
             
         cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
@@ -185,11 +187,11 @@ class NpyFastaRecord(FastaRecord):
 
 class MemoryRecord(FastaRecord):
     @classmethod
-    def prepare(klass, fasta_obj, seqinfo_generator):
+    def prepare(klass, fasta_obj, seqinfo_generator, flatten_inplace=False):
         f = fasta_obj.fasta_name
         seqs = {}
         idx = {}
-        for seqid, start, stop, seq in seqinfo_generator:
+        for seqid, seq in seqinfo_generator:
             seqs[seqid] = (seq, None)
             
         return seqs, seqs
@@ -217,7 +219,7 @@ try:
         idx = ".tct"
 
         @classmethod
-        def prepare(klass, fasta_obj, seqinfo_generator):
+        def prepare(klass, fasta_obj, seqinfo_generator, flatten_inplace):
             f = fasta_obj.fasta_name
             if klass.is_current(f):
                 db = HDB()
@@ -226,8 +228,10 @@ try:
 
             db = HDB(f + klass.idx, tc.HDBOWRITER | tc.HDBOCREAT)
             flatfh = open(f + klass.ext, 'wb')
-            for seqid, start, stop, seq in seqinfo_generator:
+            for seqid, seq in seqinfo_generator:
+                start = flatfh.tell()
                 flatfh.write(seq)
+                stop = flatfh.tell() # TODO add one here?
                 db[seqid] = (start, stop)
 
             db.sync()
