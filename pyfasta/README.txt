@@ -111,7 +111,7 @@ in pyfasta/records.py for details.
 
 Flattening
 ==========
-In order to efficiently access the sequence content, pyfasta saves a separate, flattened fasta file with all newlines removed from the sequence. In the case of large fasta files, one may not wish to save 2 copies of a 5Gigabyte + file. In tha case, it's possible to flatten the file "inplace", keeping all the headers, and retaining the validity of the fasta sequence -- with the only change being that the new-lines are removed from each sequence. This can be specified via `flatten_inplace` = True
+In order to efficiently access the sequence content, pyfasta saves a separate, flattened file with all newlines and headers removed from the sequence. In the case of large fasta files, one may not wish to save 2 copies of a 5GG+ file. In that case, it's possible to flatten the file "inplace", keeping all the headers, and retaining the validity of the fasta file -- with the only change being that the new-lines are removed from each sequence. This can be specified via `flatten_inplace` = True
 ::
     
     >>> import os
