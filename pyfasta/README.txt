@@ -20,7 +20,7 @@ spaces or headers and uses either a mmap of numpy binary format or fseek/fread s
 Usage
 =====
 ::
-
+  
     >>> from pyfasta import Fasta
 
     >>> f = Fasta('tests/data/three_chrs.fasta')
@@ -109,6 +109,26 @@ other than the repr, it should behave exactly like the Npy record class backend
 it's possible to create your own using a sub-class of FastaRecord. see the source 
 in pyfasta/records.py for details.
 
+Flattening
+==========
+In order to efficiently access the sequence content, pyfasta saves a separate, flattened fasta file with all newlines removed from the sequence. In the case of large fasta files, one may not wish to save 2 copies of a 5Gigabyte + file. In tha case, it's possible to flatten the file "inplace", keeping all the headers, and retaining the validity of the fasta sequence -- with the only change being that the new-lines are removed from each sequence. This can be specified via `flatten_inplace` = True
+::
+    
+    >>> import os
+    >>> os.unlink('tests/data/three_chrs.fasta.gdx') # cleanup non-inplace idx
+    >>> f = Fasta('tests/data/three_chrs.fasta', flatten_inplace=True)
+    >>> f['chr1']  # note the difference in the output from above.
+    NpyFastaRecord(6..86)
+
+    # sequence from is same as when requested from non-flat file above.
+    >>> f['chr1'][1:9]
+    'CTGACTGA'
+
+    # the flattened file is kept as a place holder without the sequence data.
+    >>> open('tests/data/three_chrs.fasta.flat').read()
+    'flattened'
+
+
 Command Line Interface
 ======================
 there's also a command line interface to manipulate / view fasta files.
@@ -137,21 +157,25 @@ show some info about the file (and show gc content):
   $ pyfasta **info** --gc test/data/three_chrs.fasta
 
 
-extract sequence from the file. use the header flag to make
+**extract** sequence from the file. use the header flag to make
 a new fasta file. the args are a list of sequences to extract.
 
   $ pyfasta **extract** --header --fasta test/data/three_chrs.fasta seqa seqb seqc
 
-extract sequence from a file using a file containing the headers *not* wanted in the new file:
+**extract** sequence from a file using a file containing the headers *not* wanted in the new file:
 
   $ pyfasta extract --header --fasta input.fasta --exclude --file seqids_to_exclude.txt
+
+
+**flatten** a file inplace, for faster later use by pyfasta, and without creating another copy. (`Flattening`_)
+
+  $ pyfasta flatten input.fasta 
 
 cleanup 
 =======
 (though for real use these will remain for faster access)
 ::
 
-    >>> import os
     >>> os.unlink('tests/data/three_chrs.fasta.gdx')
     >>> os.unlink('tests/data/three_chrs.fasta.flat')
 

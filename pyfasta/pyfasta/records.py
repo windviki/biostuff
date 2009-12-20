@@ -19,9 +19,9 @@ class FastaRecord(object):
 
     @classmethod
     def is_current(klass, fasta_name):
-        utd = is_up_to_date(fasta_name + klass.ext, fasta_name) 
+        utd = is_up_to_date(fasta_name + klass.idx, fasta_name) 
         if not utd: return False
-        return is_up_to_date(fasta_name + klass.idx, fasta_name)
+        return is_up_to_date(fasta_name + klass.ext, fasta_name)
 
     def __init__(self, fh, start, stop):
 
@@ -39,12 +39,18 @@ class FastaRecord(object):
         """
         f = fasta_obj.fasta_name
         if klass.is_current(f):
-            return cPickle.load(open(f + klass.idx)), \
-                               klass.modify_flat(f + klass.ext)
+            idx = cPickle.load(open(f + klass.idx))
+            if flatten_inplace: flat = klass.modify_flat(f)
+            else: flat = klass.modify_flat(f + klass.ext)
 
         idx = {}
         flatfh = open(f + klass.ext, 'wb')
-        for seqid, seq in seqinfo_generator:
+        for i, (seqid, seq) in enumerate(seqinfo_generator):
+            if flatten_inplace:
+                if i == 0:
+                    flatfh.write('>%s\n' % seqid)
+                else:
+                    flatfh.write('\n>%s\n' % seqid)
             start = flatfh.tell()
             flatfh.write(seq)
             stop = flatfh.tell() 
@@ -52,8 +58,27 @@ class FastaRecord(object):
             
         cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
         flatfh.close()
+        if flatten_inplace:
+            klass.copy_inplace(flatfh.name, f)
+            return idx, klass.modify_flat(f)
 
         return idx, klass.modify_flat(f + klass.ext)
+
+    @classmethod
+    def copy_inplace(klass, flat_name, fasta_name):
+        """
+        so they requested flatten_inplace, so we
+        overwrite the .fasta file with the .fasta.flat
+        file and save something in the .flat as a place-holder.
+        """
+        os.rename(flat_name, fasta_name)
+        # still need the flattend file to show
+        # it's current.
+        flatfh = open(fasta_name + klass.ext, 'wb')
+        flatfh.write('flattened')
+        flatfh.close()
+
+
     
     @classmethod
     def modify_flat(klass, flat_file):
@@ -61,12 +86,6 @@ class FastaRecord(object):
     
     def _adjust_slice(self, islice):
         l = len(self)
-        """
-        if not islice.start is None:
-            istart = self.stop + islice.start
-            while istart < 0:
-                istart += l
-        """
         if not islice.start is None and islice.start < 0:
             istart = self.stop + islice.start
         else:
@@ -228,14 +247,23 @@ try:
 
             db = HDB(f + klass.idx, tc.HDBOWRITER | tc.HDBOCREAT)
             flatfh = open(f + klass.ext, 'wb')
-            for seqid, seq in seqinfo_generator:
+            for i, (seqid, seq) in enumerate(seqinfo_generator):
+                if flatten_inplace:
+                    if i == 0:
+                        flatfh.write('>%s\n' % seqid)
+                    else:
+                        flatfh.write('\n>%s\n' % seqid)
                 start = flatfh.tell()
                 flatfh.write(seq)
-                stop = flatfh.tell() # TODO add one here?
+                stop = flatfh.tell() 
                 db[seqid] = (start, stop)
 
             db.sync()
             flatfh.close()
+
+            if flatten_inplace:
+                klass.copy_inplace(flatfh.name, f)
+                return db, klass.modify_flat(f)
             return db, klass.modify_flat(f + klass.ext)
 
     __all__.append('TCRecord')

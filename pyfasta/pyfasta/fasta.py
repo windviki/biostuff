@@ -53,7 +53,9 @@ class Fasta(dict):
         fh = open(self.fasta_name, 'r+')
         # do the flattening (remove newlines)
         idx = {}
-        header = fh.readline()
+        header = None
+        while not header:
+            header = fh.readline().strip()
         while header:
             assert header[0] == ">", header
             next_header = None

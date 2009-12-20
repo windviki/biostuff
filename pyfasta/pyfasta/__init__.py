@@ -2,6 +2,7 @@ import sys
 from fasta import Fasta, complement
 from records import *
 from split_fasta import split
+import optparse
 
 def main():
     help = """
@@ -10,6 +11,11 @@ def main():
         `info`: show info about the fasta file and exit.
         `split`: split a large fasta file into separate files
                  and/or into K-mers.
+        `flatten`: flatten a fasta file inplace so that later
+                   command-line (and programmattic) access via
+                   pyfasta will use the inplace flattened version
+                   rather than creating another .flat copy of the
+                   sequence.
 
     to view the help for a particular action, use:
         pyfasta [action] --help
@@ -42,7 +48,6 @@ def info(args):
     <BLANKLINE>
     3760 basepairs in 3 sequences
     """
-    import optparse
     parser = optparse.OptionParser("""\
    print headers and lengths of the given fasta file in order of length. e.g.:
         pyfasta info --gc some.fasta""")
@@ -86,6 +91,14 @@ def info(args):
         print
         print "%s basepairs in %i sequences" % (total_len, nseqs)
 
+def flatten(args):
+    """
+    >>> flatten(['tests/data/three_chrs.fasta'])
+    """
+    parser = optparse.OptionParser("""flatten a fasta file *inplace* so all later access by pyfasta will use that flattend (but still viable) fasta file""")
+    _, fasta = parser.parse_args(args)
+    for fa in fasta:
+        f = Fasta(fa, flatten_inplace=True)
 
 def extract(args):
     """
@@ -93,7 +106,6 @@ def extract(args):
     TAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT
     """
 
-    import optparse
     parser = optparse.OptionParser("""extract some sequences from a fasta file. e.g.:
                pyfasta extract --fasta some.fasta --header at2g26540 at3g45640""")
     parser.add_option("--fasta", dest="fasta", help="path to the fasta file")

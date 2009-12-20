@@ -19,27 +19,28 @@ def _cleanup():
 
 def test_classes():
 
-    for klass in record_classes:
-        f = Fasta('tests/data/three_chrs.fasta', record_class=klass)
-        yield check_keys, f
-        yield check_misc, f, klass
-        yield check_contains, f
-        yield check_shape, f
-        yield check_bounds, f
-        yield check_tostring, f
-        yield check_kmers, f
-        yield check_kmer_overlap, f
-        yield check_slice_size, f
-        yield check_slice, f
-        yield check_full_slice, f
-        yield check_array_copy, f
-        yield check_array, f
+    for inplace in (True, False):
+        for klass in record_classes:
+            f = Fasta('tests/data/three_chrs.fasta', record_class=klass, flatten_inplace=inplace)
+            yield check_keys, f
+            yield check_misc, f, klass
+            yield check_contains, f
+            yield check_shape, f
+            yield check_bounds, f
+            yield check_tostring, f
+            yield check_kmers, f
+            yield check_kmer_overlap, f
+            yield check_slice_size, f
+            yield check_slice, f
+            yield check_full_slice, f
+            yield check_array_copy, f
+            yield check_array, f
 
-        del f
+            del f
 
-        yield check_reload, klass
+            yield check_reload, klass
 
-        _cleanup()
+            _cleanup()
 
 
 def check_keys(f):
