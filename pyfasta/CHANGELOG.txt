@@ -1,6 +1,13 @@
 Changes
 =======
 
+0.3.5
+-----
+
+* update docs in README.txt for new CLI stuff.
+* allow flattening inplace.
+* get rid of memmap (results in faster parsing).
+
 0.3.4
 -----
 
