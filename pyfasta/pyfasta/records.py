@@ -5,13 +5,17 @@ import os
 
 __all__ = ['FastaRecord', 'NpyFastaRecord', 'MemoryRecord']
 
-
-def is_up_to_date(a, b):
-    return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
-
-
 MAGIC = "@flattened@"
 
+def is_up_to_date(a, b):
+    return os.path.exists(a) and os.stat(a).st_mtime >= os.stat(b).st_mtime
+
+
+def ext_is_flat(ext):
+    fh = open(ext)
+    t = fh.read(len(MAGIC))
+    fh.close()
+    return MAGIC == t
 
 class FastaRecord(object):
     __slots__ = ('fh', 'start', 'stop')
@@ -41,9 +45,12 @@ class FastaRecord(object):
         f = fasta_obj.fasta_name
         if klass.is_current(f):
             idx = cPickle.load(open(f + klass.idx))
-            if flatten_inplace: flat = klass.modify_flat(f)
+            if flatten_inplace or ext_is_flat(f + klass.ext): flat = klass.modify_flat(f)
             else: flat = klass.modify_flat(f + klass.ext)
-            return idx, flat
+            if flatten_inplace and not ext_is_flat(f + klass.ext):
+                flat.close()
+            else:
+                return idx, flat
 
         idx = {}
         flatfh = open(f + klass.ext, 'wb')
@@ -57,13 +64,14 @@ class FastaRecord(object):
             flatfh.write(seq)
             stop = flatfh.tell() 
             idx[seqid] = (start, stop)
-            
-        cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
         flatfh.close()
+            
         if flatten_inplace:
             klass.copy_inplace(flatfh.name, f)
+            cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
             return idx, klass.modify_flat(f)
 
+        cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
         return idx, klass.modify_flat(f + klass.ext)
 
     @classmethod
@@ -245,9 +253,12 @@ try:
         def prepare(klass, fasta_obj, seqinfo_generator, flatten_inplace):
             f = fasta_obj.fasta_name
             if klass.is_current(f):
-                db = HDB()
-                db.open(f + klass.idx, tc.HDBOREADER)
-                return db, klass.modify_flat(f + klass.ext)
+                idx = HDB()
+                idx.open(f + klass.idx, tc.HDBOREADER)
+                if flatten_inplace or ext_is_flat(f + klass.ext): flat = klass.modify_flat(f)
+                else: flat = klass.modify_flat(f + klass.ext)
+                return idx, flat
+
 
             db = HDB(f + klass.idx, tc.HDBOWRITER | tc.HDBOCREAT)
             flatfh = open(f + klass.ext, 'wb')

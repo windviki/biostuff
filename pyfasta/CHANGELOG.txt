@@ -1,5 +1,9 @@
 Changes
 =======
+0.3.8
+-----
+* clean up logic for mixing inplace/non-inplace flattened files.
+  if the inplace is available, it is always used. 
 
 0.3.6/7
 -------
