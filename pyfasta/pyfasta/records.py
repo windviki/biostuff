@@ -10,7 +10,7 @@ def is_up_to_date(a, b):
     return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
 
 
-MAGIC = "@flatten@"
+MAGIC = "@flattened@"
 
 
 class FastaRecord(object):
@@ -77,7 +77,7 @@ class FastaRecord(object):
         # still need the flattend file to show
         # it's current.
         flatfh = open(fasta_name + klass.ext, 'wb')
-        flatfh.write('flattened')
+        flatfh.write(MAGIC)
         flatfh.close()
 
 
@@ -235,6 +235,8 @@ try:
             return cPickle.loads(tc.HDB.get(self, k))
         def __setitem__(self, k, v):
             tc.HDB.put(self, k, cPickle.dumps(v, -1))
+        def __del__(self):
+            tc.HDB.close(self)
 
     class TCRecord(NpyFastaRecord):
         idx = ".tct"
@@ -267,6 +269,7 @@ try:
                 klass.copy_inplace(flatfh.name, f)
                 return db, klass.modify_flat(f)
             return db, klass.modify_flat(f + klass.ext)
+
 
     __all__.append('TCRecord')
 except ImportError:

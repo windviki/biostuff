@@ -126,7 +126,7 @@ In order to efficiently access the sequence content, pyfasta saves a separate, f
 
     # the flattened file is kept as a place holder without the sequence data.
     >>> open('tests/data/three_chrs.fasta.flat').read()
-    'flattened'
+    '@flattened@'
 
 
 Command Line Interface

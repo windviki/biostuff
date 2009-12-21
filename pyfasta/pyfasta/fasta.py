@@ -55,24 +55,25 @@ class Fasta(dict):
     def gen_seqs_with_headers(self):
         """remove all newlines from the sequence in a fasta file
         and generate starts, stops to be used by the record class"""
-        fh = open(self.fasta_name, 'r+')
+        fh = open(self.fasta_name, 'r')
         # do the flattening (remove newlines)
         idx = {}
         header = None
-        while not header:
-            header = fh.readline().strip()
-        while header:
-            assert header[0] == ">", header
-            next_header = None
-            lineseq = fh.readline().rstrip()
-            seq = []
-            while lineseq and lineseq[0] != '>':
-                seq.append(lineseq)
-                lineseq = fh.readline().rstrip()
-                 
-            yield header[1:].strip(), "".join(seq)
-            header = lineseq
+        seqs = None
+        for line in fh:
+            line = line.rstrip()
+            if not line: continue
+            if line[0] == ">":
+                if seqs is not None:
+                    yield header, "".join(seqs)
 
+                header = line[1:].strip()
+                seqs = []
+            else:
+                seqs.append(line)
+
+        if seqs != []:
+            yield header, "".join(seqs)
         fh.close()
 
     def __len__(self):

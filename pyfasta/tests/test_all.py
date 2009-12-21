@@ -14,18 +14,17 @@ import numpy as np
 import glob
 
 def _cleanup():
-    for f in glob.glob("tests/data/three_chrs_t.fasta*"):
+    for f in glob.glob("tests/data/three_chrs.fasta*"):
+        if f.endswith(".orig"): continue
         os.unlink(f)
-    for f in glob.glob("tests/data/three_chrs.fasta.*"):
-        os.unlink(f)
+    shutil.copyfile('tests/data/three_chrs.fasta.orig', 'tests/data/three_chrs.fasta')
 
 
 def test_classes():
 
     for inplace in (True, False):
         for klass in record_classes:
-            shutil.copyfile('tests/data/three_chrs.fasta', 'tests/data/three_chrs_t.fasta')
-            f = Fasta('tests/data/three_chrs_t.fasta', record_class=klass, flatten_inplace=inplace)
+            f = Fasta('tests/data/three_chrs.fasta', record_class=klass, flatten_inplace=inplace)
             yield check_keys, f
             yield check_misc, f, klass
             yield check_contains, f
@@ -40,9 +39,11 @@ def test_classes():
             yield check_array_copy, f
             yield check_array, f
 
+            fasta_name = f.fasta_name
+
             del f
 
-            yield check_reload, klass
+            yield check_reload, klass, fasta_name
 
             _cleanup()
 
@@ -51,10 +52,18 @@ def check_keys(f):
     assert sorted(f.keys()) == ['chr1', 'chr2', 'chr3']
     assert sorted(f.iterkeys()) == ['chr1', 'chr2', 'chr3']
 
+def check_reload(klass, fasta_name):
 
-def check_reload(klass):
-    f = Fasta('tests/data/three_chrs_t.fasta', record_class=klass)
+    m = ""
+    if klass.__name__ in ('FastaRecord',): # 'NpyFastaRecord'):
+        m = os.stat(fasta_name + klass.ext).st_mtime 
+
+    f = Fasta(fasta_name, record_class=klass)
     assert f
+    del f
+    if klass.__name__ in ('FastaRecord',): # 'NpyFastaRecord'):
+        assert os.stat(fasta_name + klass.ext).st_mtime  == m
+
 
 def check_full_slice(f):
     for k in f.keys():
