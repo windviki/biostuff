@@ -1,6 +1,10 @@
 Changes
 =======
 
+0.3.6
+-----
+* dont re-flatten the file every time!
+
 0.3.5
 -----
 
