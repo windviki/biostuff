@@ -8,11 +8,14 @@ except ImportError:
     pass
 
 import os
+import shutil
 from nose.tools import assert_raises
 import numpy as np
 import glob
 
 def _cleanup():
+    for f in glob.glob("tests/data/three_chrs_t.fasta*"):
+        os.unlink(f)
     for f in glob.glob("tests/data/three_chrs.fasta.*"):
         os.unlink(f)
 
@@ -21,7 +24,8 @@ def test_classes():
 
     for inplace in (True, False):
         for klass in record_classes:
-            f = Fasta('tests/data/three_chrs.fasta', record_class=klass, flatten_inplace=inplace)
+            shutil.copyfile('tests/data/three_chrs.fasta', 'tests/data/three_chrs_t.fasta')
+            f = Fasta('tests/data/three_chrs_t.fasta', record_class=klass, flatten_inplace=inplace)
             yield check_keys, f
             yield check_misc, f, klass
             yield check_contains, f
@@ -49,7 +53,7 @@ def check_keys(f):
 
 
 def check_reload(klass):
-    f = Fasta('tests/data/three_chrs.fasta', record_class=klass)
+    f = Fasta('tests/data/three_chrs_t.fasta', record_class=klass)
     assert f
 
 def check_full_slice(f):

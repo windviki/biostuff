@@ -1,10 +1,13 @@
 import string
+import os.path
 import numpy as np
 
 from records import NpyFastaRecord
 
 _complement = string.maketrans('ATCGatcgNnXx', 'TAGCtagcNnXx')
 complement  = lambda s: s.translate(_complement)
+
+class FastaNotFound(Exception): pass
 
 class Fasta(dict):
     def __init__(self, fasta_name, record_class=NpyFastaRecord,
@@ -30,6 +33,8 @@ class Fasta(dict):
             'AGTC'
 
         """
+        if not os.path.exists(fasta_name):
+            raise FastaNotFound('"' + fasta_name + '"')
         self.fasta_name = fasta_name
         self.record_class = record_class
         self.index, self.prepared = self.record_class.prepare(self,

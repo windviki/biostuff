@@ -10,6 +10,7 @@ def is_up_to_date(a, b):
     return os.path.exists(a) and os.stat(a).st_mtime > os.stat(b).st_mtime
 
 
+MAGIC = "@flatten@"
 
 
 class FastaRecord(object):
@@ -42,6 +43,7 @@ class FastaRecord(object):
             idx = cPickle.load(open(f + klass.idx))
             if flatten_inplace: flat = klass.modify_flat(f)
             else: flat = klass.modify_flat(f + klass.ext)
+            return idx, flat
 
         idx = {}
         flatfh = open(f + klass.ext, 'wb')
