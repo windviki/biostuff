@@ -148,6 +148,8 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
     cdef PyObject *ai, *aj
     cdef int zero=0, one=1
 
+    cdef bint last_match=1
+
 
     cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.zeros((max_i + 1, max_j + 1), dtype=np.int8)
     cdef np.ndarray[DTYPE_INT, ndim=2] score = np.zeros((max_i + 1, max_j + 1), dtype=np.int)
@@ -179,7 +181,13 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
             cj = seqj[<size_t>(j - 1)]
 
             if matrix is None:
-                diag_score = score[i - 1, j - 1] + (match if cj == ci else mismatch)
+                if cj == ci:
+                    diag_score = score[i - 1, j - 1] + match
+                    last_match = 1
+                else:
+                    diag_score = score[i - 1, j - 1] + (gap_init if last_match
+                                                        else mismatch)
+                    last_match = 0
             else:
                 ii = strpos(sheader, ci)
                 jj = strpos(sheader, cj)
@@ -202,8 +210,8 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
             up_score = score[<size_t>(i - 1), <size_t>j] + (gap if agap[<size_t>(i - 1), j] == one else gap_init)
             left_score   = score[<size_t>i, <size_t>(j - 1)] + (gap if agap[i, <size_t>(j - 1)] == one else gap_init)
             
-            if diag_score > up_score:
-                if diag_score > left_score:
+            if diag_score >= up_score:
+                if diag_score >= left_score:
                     score[i, j] = diag_score
                     pointer[i, j] = DIAG
                     agap[i, j] = zero
@@ -213,7 +221,7 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
                     agap[i, j] = one
             else:
                 agap[i, j] = one
-                if up_score >= left_score:
+                if up_score > left_score:
                     score[i, j]  = up_score
                     pointer[i, j] = UP
                 else:
@@ -251,25 +259,3 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
     _PyString_Resize(&aj, align_counter)
     _PyString_Resize(&ai, align_counter)
     return (<object>aj)[::-1], (<object>ai)[::-1]
-            
-def main():
-    import optparse
-    parser = optparse.OptionParser(usage="""
-    %prog [options] seq1 seq2 
-    """)
-    parser.add_option("--gap", dest="gap", help="gap extend penalty (must be integer <= 0)", type="int", default=-1)
-    parser.add_option("--gap_init", dest="gap_init", help="gap start penalty (must be integer <= 0)", type="int", default=-1)
-    parser.add_option("--match", dest="match", help="match score (must be integer > 0)", type="int", default=1)
-    parser.add_option("--mismatch", dest="mismatch", help="gap penalty (must be integer < 0)", type="int", default=-1)
-    parser.add_option("--matrix", dest="matrix", help="scoring matrix in ncbi/data/ format,\
-                                      if not specificied, match/mismatch are used", default=None)
-
-    try:
-        options, args = parser.parse_args()
-    except:
-        sys.exit(parser.print_help())
-
-    if len(args) != 2:
-        sys.exit(parser.print_help())
-    print "\n".join(global_align(args[0], args[1], options.gap, options.match, options.mismatch, options.gap_init, options.matrix))
-        
