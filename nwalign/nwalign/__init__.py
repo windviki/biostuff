@@ -22,7 +22,6 @@ def main():
         sys.exit(parser.print_help())
     if len(args) != 2:
         sys.exit(parser.print_help())
-    print options.gap_init, type(options.gap_init)
     print "\n".join(global_align(args[0], args[1], options.gap, options.match,
                                  options.mismatch, int(options.gap_init), options.matrix))
 

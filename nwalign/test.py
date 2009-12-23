@@ -8,7 +8,7 @@ def test_nw():
 
 def test_pam():
     r = nw.global_align("CEELECANTH", "PELICAN", matrix='PAM250')
-    assert r ==  ('CEELECANTH', '-PELICA--N')
+    assert r ==  ('CEELECANTH', '-PELICA--N'), r
 
 
 def test_gap_init():
@@ -20,12 +20,31 @@ def test_gap_init():
 
     r = nw.global_align(s0, s1, gap=-2, gap_init=-10, matrix='BLOSUM62')
     assert r[0] == a0
-    assert r[1] == a1
+    assert r[1] == a1, r[1]
     # using cached matrix.
     r = nw.global_align(s0, s1, gap=-2, gap_init=-10, matrix='BLOSUM62')
     assert r[0] == a0
-    assert r[1] == a1
+    assert r[1] == a1, r[1]
 
+
+def test_gap_2():
+    a="TAATTATTAATCTTCAACGAGGAATGCCTAGTAAGCGCGAGTCATCAACTTGCGCTGATTACGTCCCTGCCCTTTGTACACACCGCCCGTCGCTCCTACCGATTGAGTGATCCGGTGAATTATTTGGACCGTATTTATTGCAGTTTCTGCGTTAAATATGGAAAGTTTTGTAAACCTTATCACTTAGAGGAAGGAGAAGTCGTAACAAGGTTT"
+    b="GTCGCTCCTACCGATTGAGTGATCCGGTGAATTATTCGGACCGTGCCTGCAGCAGTTTCTGCTGCTGGTATGGAAAGTTTTGTAAACCTTATCACTTAGAGGAAGGAGAAGTCGTAACAAGGTTTCC"
+    al = "TAATTATTAATCTTCAACGAGGAATGCCTAGTAAGCGCGAGTCATCAACTTGCGCTGATTACGTCCCTGCCCTTTGTACACACCGCCCGT"\
+         "CGCTCCTACCGATTGAGTGATCCGGTGAATTATTTGGACCGTATTTATTGCAGTTTCTGC-GTTAAATATGGAAAGTTTTGTAAACCTTA"\
+         "TCACTTAGAGGAAGGAGAAGTCGTAACAAGGTTT--"
+
+    bl = "----------------------------------------------------------------------------------------GT"\
+         "CGCTCCTACCGATTGAGTGATCCGGTGAATTATTCGGACCGTGCCTGCAGCAGTTTCTGCTGCT-GGTATGGAAAGTTTTGTAAACCTTA"\
+         "TCACTTAGAGGAAGGAGAAGTCGTAACAAGGTTTCC"
+
+    r = nw.global_align(a, b, gap_init=-2)
+    assert r[0] == al, r[0]
+    assert r[1] == bl, r[1]
+
+    from nose.tools import assert_raises
+    assert_raises(AssertionError, nw.global_align, a, b, gap_init=2)
 
 if __name__ == "__main__":
-    test_gap_init()
+    import nose
+    nose.main()

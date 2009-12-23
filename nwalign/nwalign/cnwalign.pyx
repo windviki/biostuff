@@ -123,7 +123,7 @@ cdef inline size_t strpos(char *tstr, char check):
 
 @cython.boundscheck(False)
 @cython.nonecheck(False)
-cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismatch=-1, int gap_init=-1, object matrix=None):
+def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismatch=-1, int gap_init=-1, object matrix=None):
     """
     perform a global sequence alignment (needleman-wunsch) on seq and and 2. using
     the matrix for nucleotide transition from matrix if available.
@@ -134,6 +134,7 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
     ('COELANCANTH', '-PEL-ICAN--')
 
     """
+
     cdef char* seqj = _seqj
     cdef char* seqi = _seqi
 
@@ -149,6 +150,9 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
     cdef int zero=0, one=1
 
     cdef bint last_match=1
+    assert gap <= 0
+    assert mismatch <= 0
+    assert gap_init <= 0
 
 
     cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.zeros((max_i + 1, max_j + 1), dtype=np.int8)
@@ -179,7 +183,7 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
         ci = seqi[<size_t>(i - 1)]
         for j in range(1, max_j + 1):
             cj = seqj[<size_t>(j - 1)]
-
+            # TODO: move this to separate function.
             if matrix is None:
                 if cj == ci:
                     diag_score = score[i - 1, j - 1] + match
@@ -189,6 +193,7 @@ cpdef global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mism
                                                         else mismatch)
                     last_match = 0
             else:
+                # TODO: move ii outside
                 ii = strpos(sheader, ci)
                 jj = strpos(sheader, cj)
                 if ii == -1 or jj == -1:
