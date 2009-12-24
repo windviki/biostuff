@@ -48,7 +48,6 @@ cimport cython
 import sys
 import os.path
 
-
 cdef extern from "stdlib.h":
     ctypedef unsigned int size_t
     size_t strlen(char *s)
@@ -73,22 +72,12 @@ cdef inline int imax2(int a, int b):
 
 
 @cython.boundscheck(False)
-def read_matrix(path, cache={}):
+cdef read_matrix(path, dict cache={}):
     if path in cache: return cache[path]
     cdef np.ndarray[DTYPE_INT, ndim=2] a
+    #cdef np.ndarray[DTYPE_UINT, ndim=1] header
     cdef size_t ai = 0, i
     cdef int v
-
-
-    #if os.path.basename(path) in MATRIX:
-    #    import cPickle
-    #    op = os.path
-    #    fpath = op.join(op.dirname(op.abspath(__file__)), 'data', path + '.pkl')
-    #    fh = open(fpath, 'rb')
-    #    a = cPickle.load(fh)
-    #    h = cPickle.load(fh)
-    #    fh.close()
-    #    return h, a
 
     fh = open(path)
     headers = None
@@ -112,6 +101,7 @@ def read_matrix(path, cache={}):
     cache[path] = result
     return result
 
+
 cdef inline size_t strpos(char *tstr, char check):
     cdef size_t i = 0
     cdef size_t slen = strlen(tstr)
@@ -123,7 +113,8 @@ cdef inline size_t strpos(char *tstr, char check):
 
 @cython.boundscheck(False)
 @cython.nonecheck(False)
-def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismatch=-1, int gap_init=-1, object matrix=None):
+def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int
+                 mismatch=-1, int gap_init=-1, object matrix=None):
     """
     perform a global sequence alignment (needleman-wunsch) on seq and and 2. using
     the matrix for nucleotide transition from matrix if available.
@@ -150,65 +141,66 @@ def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismat
     cdef int zero=0, one=1
 
     cdef bint last_match=1
-    assert gap <= 0
-    assert mismatch <= 0
-    assert gap_init <= 0
+    assert gap <= 0, "gap penalty must be <= 0"
+    assert mismatch <= 0, "mismatch must be <= 0"
+    assert gap_init <= 0, "gap_init must be <= 0"
 
 
     cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.zeros((max_i + 1, max_j + 1), dtype=np.int8)
     cdef np.ndarray[DTYPE_INT, ndim=2] score = np.zeros((max_i + 1, max_j + 1), dtype=np.int)
     cdef np.ndarray[DTYPE_UINT, ndim=2] pointer = np.zeros((max_i + 1, max_j + 1), dtype=np.uint)
     cdef np.ndarray[DTYPE_INT, ndim=2] amatrix
+    cdef bint has_matrix = 0
 
 
 
     if matrix is not None:
         pyheader, amatrix = read_matrix(matrix)
         sheader = pyheader
+        has_matrix = 1
   
-    pointer[<size_t>0, <size_t>0] = NONE
-    score[<size_t>0, <size_t>0] = 0
+    pointer[0, 0] = NONE
+    score[0, 0] = 0
     
-    pointer[<size_t>0, <size_t>1:] = LEFT
-    pointer[<size_t>1:, <size_t>0] = UP
+    pointer[0, 1:] = LEFT
+    pointer[1:, 0] = UP
 
-    score[<size_t>0, <size_t>1:] = gap * np.arange(max_j, dtype=np.int)
-    score[<size_t>1:, <size_t>0] = gap * np.arange(max_i, dtype=np.int)
+    score[0, 1:] = gap * np.arange(max_j, dtype=np.int)
+    score[1:, 0] = gap * np.arange(max_i, dtype=np.int)
 
-    agap[<size_t>0, <size_t>1:] = one
-    agap[<size_t>1:, <size_t>0] = one
-    agap[<size_t>0, <size_t>0] = zero
+    agap[0, 1:] = one
+    agap[1:, 0] = one
+    agap[0, 0] = zero
+
 
     for i in range(1, max_i + 1):
         ci = seqi[<size_t>(i - 1)]
+        if has_matrix:
+            ii = strpos(sheader, ci)
+            if ii == -1:
+                py_ci = <object>PyString_FromStringAndSize(&ci, <size_t>1)
+                raise Exception(py_ci + "from: " + seqi + " not in scoring matrix")
+
         for j in range(1, max_j + 1):
             cj = seqj[<size_t>(j - 1)]
             # TODO: move this to separate function.
-            if matrix is None:
+            if not has_matrix:
                 if cj == ci:
                     diag_score = score[i - 1, j - 1] + match
                     last_match = 1
                 else:
-                    diag_score = score[i - 1, j - 1] + (gap_init if last_match
+                    diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + (gap_init if last_match
                                                         else mismatch)
                     last_match = 0
             else:
-                # TODO: move ii outside
-                ii = strpos(sheader, ci)
                 jj = strpos(sheader, cj)
-                if ii == -1 or jj == -1:
-                    if ii == -1:
-                        py_ci = <object>PyString_FromStringAndSize(&ci, <size_t>1)
-                        #raise Exception(py_ci + "from: " + seqi  + " not in scoring matrix")
-                        sys.stderr.write("'" + py_ci + "' from: " + seqi  + " not in scoring matrix\n")
-                    if jj == -1:
-                        py_cj = <object>PyString_FromStringAndSize(&cj, <size_t>1)
-                        #raise Exception(py_cj + "from: " + seqj + " not in scoring matrix")
-                        sys.stderr.write("'" + py_cj + "' from: " + seqj + " not in scoring matrix\n")
+                if jj == -1:
+                    py_cj = <object>PyString_FromStringAndSize(&cj, <size_t>1)
+                    sys.stderr.write("'" + py_cj + "' from: " + seqj + " not in scoring matrix\n")
                     sys.stderr.write("using score of score of 0\n")
                     tscore = 0
                 else:
-                    tscore = amatrix[ii, jj]
+                    tscore = amatrix[<size_t>ii, <size_t>jj]
 
                 diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + tscore
 
@@ -217,21 +209,21 @@ def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismat
             
             if diag_score >= up_score:
                 if diag_score >= left_score:
-                    score[i, j] = diag_score
-                    pointer[i, j] = DIAG
-                    agap[i, j] = zero
+                    score[<size_t>i, <size_t>j] = diag_score
+                    pointer[<size_t>i, <size_t>j] = DIAG
+                    agap[<size_t>i, <size_t>j] = zero
                 else:
-                    score[i, j] = left_score
-                    pointer[i, j] = LEFT
-                    agap[i, j] = one
+                    score[<size_t>i, <size_t>j] = left_score
+                    pointer[<size_t>i, <size_t>j] = LEFT
+                    agap[<size_t>i, <size_t>j] = one
             else:
                 agap[i, j] = one
                 if up_score > left_score:
-                    score[i, j]  = up_score
-                    pointer[i, j] = UP
+                    score[<size_t>i, <size_t>j]  = up_score
+                    pointer[<size_t>i, <size_t>j] = UP
                 else:
-                    score[i, j]   = left_score
-                    pointer[i, j] = LEFT
+                    score[<size_t>i, <size_t>j]   = left_score
+                    pointer[<size_t>i, <size_t>j] = LEFT
 
     seqlen = max_i + max_j
     ai = PyString_FromStringAndSize(NULL, seqlen)
@@ -241,9 +233,8 @@ def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismat
     align_j = PyString_AS_STRING(aj)
     align_i = PyString_AS_STRING(ai)
         
-    while True:
-        p = pointer[i, j]
-        if p == NONE: break
+    p = pointer[i, j]
+    while p != NONE:
         if p == DIAG:
             i -= 1
             j -= 1
@@ -260,6 +251,7 @@ def global_align(object _seqj, object _seqi, int gap=-1, int match=1, int mismat
         else:
             raise Exception('wtf!')
         align_counter += 1
+        p = pointer[i, j]
 
     _PyString_Resize(&aj, align_counter)
     _PyString_Resize(&ai, align_counter)
