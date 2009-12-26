@@ -151,12 +151,20 @@ def global_align(object _seqj, object _seqi, int match=1,
     if matrix is None:
         return global_align_no_matrix(_seqj, _seqi, match, gap_open, gap_extend)
 
+    cdef bint flip = 0
+    
     cdef char* seqj = _seqj
     cdef char* seqi = _seqi
 
     cdef size_t max_j = strlen(seqj)
     cdef size_t max_i = strlen(seqi)
-    cdef size_t i, j, seqlen, align_counter = 0, p, ib, jb
+    if max_j > max_i:
+        flip = 1
+        seqi, seqj = seqj, seqi
+        max_i, max_j = max_j, max_i
+
+
+    cdef size_t i, j, seqlen, align_counter = 0, p
     cdef int diag_score, up_score, left_score, tscore
 
     cdef char *align_j, *align_i, *sheader
@@ -184,17 +192,18 @@ def global_align(object _seqj, object _seqi, int match=1,
     pointer[0, 1:] = LEFT
     pointer[1:, 0] = UP
 
-    score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
-    score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
+    score[0, 1:] = gap_open + gap_extend * np.arange(0, max_j, dtype=np.int)
+    score[1:, 0] = gap_open + gap_extend * np.arange(0, max_i, dtype=np.int)
 
     agap_i[0] = zero
-    agap_j[0] = zero
 
     for i in range(1, max_i + 1):
         ci = seqi[<size_t>(i - 1)]
         ii = strpos(sheader, ci)
 
+        agap_j[0] = zero
         for j in range(1, max_j + 1):
+            agap_j[j] = one
             cj = seqj[<size_t>(j - 1)]
             jj = strpos(sheader, cj)
 
@@ -209,7 +218,7 @@ def global_align(object _seqj, object _seqi, int match=1,
             up_score   = score[<size_t>(i - 1), j] + (gap_open if agap_i[<size_t>(i - 1)] == zero else gap_extend)
             left_score = score[i, <size_t>(j - 1)] + (gap_open if agap_j[<size_t>(j - 1)] == zero else gap_extend)
             
-            if up_score > diag_score:
+            if up_score >= diag_score: #checked.
                 if up_score > left_score:
                     score[i, j]  = up_score
                     pointer[i, j] = UP
@@ -217,7 +226,7 @@ def global_align(object _seqj, object _seqi, int match=1,
                     score[i, j]   = left_score
                     pointer[i, j] = LEFT
             else:
-                if left_score > diag_score: # or (diag_score < 0 and i == max_i):
+                if left_score >= diag_score: # or (diag_score < 0 and i == max_i):
                     score[i, j] = left_score
                     pointer[i, j] = LEFT
                 else:
@@ -251,31 +260,8 @@ def global_align(object _seqj, object _seqi, int match=1,
     # ACEB--AN
     # score equally, but we assume that the former is preferred.
     #######################################################
-    """
-    print _seqj, _seqi
-    print max_i, max_j
-    print score
-    print pointer
-    print agap
-    print
-    """
-    if max_j > max_i:
-        score_max = score[-1, :].max()
-        while score[i, j] < score_max:
-            j -= 1
-            align_i[align_counter] = c"-"
-            align_j[align_counter] = seqj[j]
-            align_counter += 1
-    elif max_i > max_j:
-        score_max = score[:, -1].max()
-        while score[i, j] < score_max:
-            i -= 1
-            align_i[align_counter] = seqi[i]
-            align_j[align_counter] = c"-"
-            align_counter += 1
 
     p = pointer[i, j]
-
     while p != NONE:
         if p == DIAG:
             i -= 1
@@ -291,13 +277,16 @@ def global_align(object _seqj, object _seqi, int match=1,
             align_j[align_counter] = c"-"
             align_i[align_counter] = seqi[i]
         else:
-            raise Exception('wtf!')
+            raise Exception('wtf!:pointer: %i', p)
         align_counter += 1
         p = pointer[i, j]
 
     _PyString_Resize(&aj, align_counter)
     _PyString_Resize(&ai, align_counter)
-    return (<object>aj)[::-1], (<object>ai)[::-1] #, score.max()
+    if flip:
+        return (<object>ai)[::-1], (<object>aj)[::-1] #, score.max()
+    else:
+        return (<object>aj)[::-1], (<object>ai)[::-1] #, score.max()
 
 
 @cython.boundscheck(False)

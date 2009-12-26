@@ -23,34 +23,35 @@ def test_score():
 
 def test_gap_open():
 
-    s0 = "AGEBANAN"
+    s0 = "ACEBANAN"
     s1 = "ACEBAN"
     r = nw.global_align(s0, s1, gap_extend=-1, gap_open=-2, matrix="PAM250")
-    assert r[0] == s0
-    assert r[1] == s1 + "--"
+    print r[0]
+    print r[1]
+    assert r[0] == s0, r[0]
+    assert r[1] == s1 + "--", r
 
     s0 = "ACEBAN"
-    s1 = "AGEBANAN"
+    s1 = "ASEBANAN"
     r = nw.global_align(s0, s1, gap_extend=-1, gap_open=-2, matrix="PAM250")
-    assert r[0] == s0 + "--"
-    assert r[1] == s1
-
-    s0 = "NABECA"
-    s1 = "NANABEGA"
-    r = nw.global_align(s0, s1, gap_extend=-1, gap_open=-2, matrix="PAM250")
-    assert r[0] == "--" + s0
+    assert r[0] == s0 + "--", r
     assert r[1] == s1, r
 
 
+    s0 = "WWWWQDNVSLFYISAILNDMKEMPGIISRMPPLPVSINNDLASSLVTSATEPRN"
+    s1 = "WWWWEGDAWDHQPDAASNCLN"
 
-    s0 = "AAAQDNVSLFYISAILNDMKEMPGIISRMPPLPVSINNDLASSLVTSATEPRN"
-    s1 = "AAAEGDAWDHQPDAASNCLN"
+    s0 = "WWWWQD"
+    s1 = "WWWWEDDA"
 
-    r = nw.global_align(s0, s1, gap_extend=-10, gap_open=-200, matrix='BLOSUM62')
-    assert r[0] == s0
-    assert r[1] == s1 + ("-" * (len(s0) - len(s1)))
+    r = nw.global_align(s0, s1, gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
+    print r[0]
+    print r[1]
+    assert r[0] == s0 + "--"
+
+    assert r[1] == s1 
     # using cached matrix.
-    r2 = nw.global_align(s0, s1, gap_extend=-10, gap_open=-200, matrix='BLOSUM62')
+    r2 = nw.global_align(s0, s1, gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
     assert r == r2
 
 
