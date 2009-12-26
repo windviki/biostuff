@@ -208,8 +208,8 @@ def global_align(object _seqj, object _seqi, int match=1,
             jj = strpos(sheader, cj)
 
             if jj == -1 or ii ==  -1:
-                sys.stderr.write("'" + chr(ci) + " or " + chr(cj) + " not in scoring matrix\n")
-                sys.stderr.write("using score of score of 0\n")
+                sys.stderr.write(chr(ci) + " or " + chr(cj) + " not in scoring matrix\n")
+                sys.stderr.write("using score of 0\n")
                 tscore = 0
             else:
                 tscore = amatrix[ii, jj]
@@ -337,11 +337,12 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
     score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
 
     agap_i[0] = zero
-    agap_j[0] = zero
 
     for i in range(1, max_i + 1):
         ci = seqi[<size_t>(i - 1)]
+        agap_j[0] = zero
         for j in range(1, max_j + 1):
+            agap_j[j] = one
             cj = seqj[<size_t>(j - 1)]
             if cj == ci:
                 diag_score = score[i - 1, j - 1] + match
