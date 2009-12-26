@@ -68,6 +68,31 @@ cdef inline int imax2(int a, int b):
     if a >= b: return a
     return b
 
+def score_alignment(a, b, int gap_open, int gap_extend, matrix):
+    cdef char *al = a
+    cdef char *bl = b
+    cdef size_t l = strlen(al), i 
+    cdef int score = 0
+    assert strlen(bl) == l, "alignment lengths must be the same"
+    cdef np.ndarray[DTYPE_INT, ndim=2] mat
+    header, mat = read_matrix(matrix)
+    cdef char *sheader = header
+
+    cdef bint gap_started = 0
+
+    for i in range(l):
+        if al[i] == c"-" or bl[i] == c"-":
+            #print "gap:", chr(al[i]), chr(bl[i]), gap_extend if gap_started else gap_open
+            score += gap_extend if gap_started else gap_open
+            gap_started = 1
+        else:
+            jj = strpos(sheader, al[i])
+            ii = strpos(sheader, bl[i])
+            score += mat[ii, jj]
+            #print "mat:", chr(al[i]), chr(bl[i]), mat[ii, jj]
+            gap_started = 0
+    return score
+
 
 @cython.boundscheck(False)
 cdef read_matrix(path, dict cache={}):
@@ -157,8 +182,10 @@ def global_align(object _seqj, object _seqi, int match=1,
     pointer[0, 1:] = LEFT
     pointer[1:, 0] = UP
 
-    score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
-    score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
+    #score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
+    #score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
+    score[0, 1:] = gap_open + gap_extend * np.arange(0, max_j, dtype=np.int)
+    score[1:, 0] = gap_open + gap_extend * np.arange(0, max_i, dtype=np.int)
 
     agap[0, 0] = zero
 
@@ -222,6 +249,14 @@ def global_align(object _seqj, object _seqi, int match=1,
     # ACEB--AN
     # score equally, but we assume that the former is preferred.
     #######################################################
+    """
+    print _seqj, _seqi
+    print max_i, max_j
+    print score
+    print pointer
+    print agap
+    print
+    """
     if max_j > max_i:
         score_max = score[-1, :].max()
         while score[i, j] < score_max:
@@ -295,7 +330,7 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
     assert gap_open <= 0, "gap_open must be <= 0"
 
 
-    cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.zeros((max_i + 1, max_j + 1), dtype=np.int8)
+    cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.ones((max_i + 1, max_j + 1), dtype=np.int8)
     cdef np.ndarray[DTYPE_INT, ndim=2] score = np.zeros((max_i + 1, max_j + 1), dtype=np.int)
     cdef np.ndarray[DTYPE_UINT, ndim=2] pointer = np.zeros((max_i + 1, max_j + 1), dtype=np.uint)
 
@@ -308,8 +343,6 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
     score[0, 1:] = gap_open + gap_extend * np.arange(max_j, dtype=np.int)
     score[1:, 0] = gap_open + gap_extend * np.arange(max_i, dtype=np.int)
 
-    agap[0, 1:] = one
-    agap[1:, 0] = one
     agap[0, 0] = zero
 
     for i in range(1, max_i + 1):
@@ -318,10 +351,8 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
             cj = seqj[<size_t>(j - 1)]
             if cj == ci:
                 diag_score = score[i - 1, j - 1] + match
-                agap[i, j] = zero
             else:
                 diag_score = score[i - 1, j - 1] + (gap_extend if agap[i - 1, j - 1] == one else gap_open)
-                agap[i, j] = one
 
             up_score = score[<size_t>(i - 1), <size_t>j] + (gap_extend if agap[<size_t>(i - 1), j] == one else gap_open)
             left_score   = score[<size_t>i, <size_t>(j - 1)] + (gap_extend if agap[i, <size_t>(j - 1)] == one else gap_open)
@@ -330,6 +361,7 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
                 if diag_score >= left_score:
                     score[<size_t>i, <size_t>j] = diag_score
                     pointer[<size_t>i, <size_t>j] = DIAG
+                    agap[i, j] = zero
                 else:
                     score[<size_t>i, <size_t>j] = left_score
                     pointer[<size_t>i, <size_t>j] = LEFT
