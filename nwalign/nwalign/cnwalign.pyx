@@ -168,7 +168,9 @@ def global_align(object _seqj, object _seqi, int match=1,
     assert gap_extend <= 0, "gap_extend penalty must be <= 0"
     assert gap_open <= 0, "gap_open must be <= 0"
 
-    cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.ones((max_i + 1, max_j + 1), dtype=np.int8)
+    cdef np.ndarray[DTYPE_BOOL, ndim=1] agap_i = np.ones((max_i + 1,), dtype=np.int8)
+    cdef np.ndarray[DTYPE_BOOL, ndim=1] agap_j = np.ones((max_j + 1,), dtype=np.int8)
+
     cdef np.ndarray[DTYPE_INT, ndim=2] score = np.empty((max_i + 1, max_j + 1), dtype=np.int)
     cdef np.ndarray[DTYPE_UINT, ndim=2] pointer = np.empty((max_i + 1, max_j + 1), dtype=np.uint)
     cdef np.ndarray[DTYPE_INT, ndim=2] amatrix
@@ -182,12 +184,11 @@ def global_align(object _seqj, object _seqi, int match=1,
     pointer[0, 1:] = LEFT
     pointer[1:, 0] = UP
 
-    #score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
-    #score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
-    score[0, 1:] = gap_open + gap_extend * np.arange(0, max_j, dtype=np.int)
-    score[1:, 0] = gap_open + gap_extend * np.arange(0, max_i, dtype=np.int)
+    score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
+    score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
 
-    agap[0, 0] = zero
+    agap_i[0] = zero
+    agap_j[0] = zero
 
     for i in range(1, max_i + 1):
         ci = seqi[<size_t>(i - 1)]
@@ -205,8 +206,8 @@ def global_align(object _seqj, object _seqi, int match=1,
                 tscore = amatrix[ii, jj]
 
             diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + tscore
-            up_score   = score[<size_t>(i - 1), j] + (gap_open if agap[<size_t>(i - 1), j] == zero else gap_extend)
-            left_score = score[i, <size_t>(j - 1)] + (gap_open if agap[i, <size_t>(j - 1)] == zero else gap_extend)
+            up_score   = score[<size_t>(i - 1), j] + (gap_open if agap_i[<size_t>(i - 1)] == zero else gap_extend)
+            left_score = score[i, <size_t>(j - 1)] + (gap_open if agap_j[<size_t>(j - 1)] == zero else gap_extend)
             
             if up_score > diag_score:
                 if up_score > left_score:
@@ -222,7 +223,8 @@ def global_align(object _seqj, object _seqi, int match=1,
                 else:
                     score[i, j] = diag_score
                     pointer[i, j] = DIAG
-                    agap[i, j] = zero# if tscore > 0 else one
+                    agap_i[i] = zero
+                    agap_j[j] = zero
 
     seqlen = max_i + max_j
     ai = PyString_FromStringAndSize(NULL, seqlen)
@@ -330,7 +332,9 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
     assert gap_open <= 0, "gap_open must be <= 0"
 
 
-    cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.ones((max_i + 1, max_j + 1), dtype=np.int8)
+    cdef np.ndarray[DTYPE_BOOL, ndim=1] agap_i = np.ones((max_i + 1,), dtype=np.int8)
+    cdef np.ndarray[DTYPE_BOOL, ndim=1] agap_j = np.ones((max_j + 1,), dtype=np.int8)
+
     cdef np.ndarray[DTYPE_INT, ndim=2] score = np.zeros((max_i + 1, max_j + 1), dtype=np.int)
     cdef np.ndarray[DTYPE_UINT, ndim=2] pointer = np.zeros((max_i + 1, max_j + 1), dtype=np.uint)
 
@@ -340,10 +344,11 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
     pointer[0, 1:] = LEFT
     pointer[1:, 0] = UP
 
-    score[0, 1:] = gap_open + gap_extend * np.arange(max_j, dtype=np.int)
-    score[1:, 0] = gap_open + gap_extend * np.arange(max_i, dtype=np.int)
+    score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
+    score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
 
-    agap[0, 0] = zero
+    agap_i[0] = zero
+    agap_j[0] = zero
 
     for i in range(1, max_i + 1):
         ci = seqi[<size_t>(i - 1)]
@@ -352,16 +357,18 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
             if cj == ci:
                 diag_score = score[i - 1, j - 1] + match
             else:
-                diag_score = score[i - 1, j - 1] + (gap_extend if agap[i - 1, j - 1] == one else gap_open)
+                diag_score = score[i - 1, j - 1] + \
+                        (gap_extend if (agap_i[i - 1] == one and  agap_j[j - 1] == one) else gap_open)
 
-            up_score = score[<size_t>(i - 1), <size_t>j] + (gap_extend if agap[<size_t>(i - 1), j] == one else gap_open)
-            left_score   = score[<size_t>i, <size_t>(j - 1)] + (gap_extend if agap[i, <size_t>(j - 1)] == one else gap_open)
+            up_score   = score[<size_t>(i - 1), j] + (gap_extend if agap_i[<size_t>(i - 1)] == one else gap_open)
+            left_score = score[i, <size_t>(j - 1)] + (gap_extend if agap_j[<size_t>(j - 1)] == one else gap_open)
 
             if diag_score >= up_score:
                 if diag_score >= left_score:
                     score[<size_t>i, <size_t>j] = diag_score
                     pointer[<size_t>i, <size_t>j] = DIAG
-                    agap[i, j] = zero
+                    agap_i[i] = zero
+                    agap_j[j] = zero
                 else:
                     score[<size_t>i, <size_t>j] = left_score
                     pointer[<size_t>i, <size_t>j] = LEFT
