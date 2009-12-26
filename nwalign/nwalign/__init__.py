@@ -1,4 +1,4 @@
-from cnwalign import global_align
+from cnwalign import global_align, global_align_no_matrix
 import cnwalign
 __doc__ = cnwalign.__doc__
 

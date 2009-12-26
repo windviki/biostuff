@@ -62,7 +62,7 @@ ctypedef np.int_t DTYPE_INT
 ctypedef np.uint_t DTYPE_UINT
 ctypedef np.int8_t DTYPE_BOOL
 
-cdef size_t UP = 0, LEFT = 1, DIAG = 2, NONE = 3
+cdef size_t UP = 1, LEFT = 2, DIAG = 3, NONE = 4
 
 cdef inline int imax2(int a, int b):
     if a >= b: return a
@@ -143,7 +143,7 @@ def global_align(object _seqj, object _seqi, int match=1,
     assert gap_extend <= 0, "gap_extend penalty must be <= 0"
     assert gap_open <= 0, "gap_open must be <= 0"
 
-    cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.empty((max_i + 1, max_j + 1), dtype=np.int8)
+    cdef np.ndarray[DTYPE_BOOL, ndim=2] agap = np.ones((max_i + 1, max_j + 1), dtype=np.int8)
     cdef np.ndarray[DTYPE_INT, ndim=2] score = np.empty((max_i + 1, max_j + 1), dtype=np.int)
     cdef np.ndarray[DTYPE_UINT, ndim=2] pointer = np.empty((max_i + 1, max_j + 1), dtype=np.uint)
     cdef np.ndarray[DTYPE_INT, ndim=2] amatrix
@@ -157,8 +157,6 @@ def global_align(object _seqj, object _seqi, int match=1,
     pointer[0, 1:] = LEFT
     pointer[1:, 0] = UP
 
-    score[0, 1:] = gap_open + gap_extend * np.arange(max_j, dtype=np.int)
-    score[1:, 0] = gap_open + gap_extend * np.arange(max_i, dtype=np.int)
     score[0, 1:] = gap_open * np.arange(1, max_j + 1, dtype=np.int)
     score[1:, 0] = gap_open * np.arange(1, max_i + 1, dtype=np.int)
 
@@ -171,20 +169,19 @@ def global_align(object _seqj, object _seqi, int match=1,
         for j in range(1, max_j + 1):
             cj = seqj[<size_t>(j - 1)]
             jj = strpos(sheader, cj)
+
             if jj == -1 or ii ==  -1:
-                sys.stderr.write("'" + ord(ci) + " or " + ord(cj) + " not in scoring matrix\n")
+                sys.stderr.write("'" + chr(ci) + " or " + chr(cj) + " not in scoring matrix\n")
                 sys.stderr.write("using score of score of 0\n")
                 tscore = 0
             else:
-                tscore = amatrix[<size_t>ii, <size_t>jj]
+                tscore = amatrix[ii, jj]
 
             diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + tscore
-
             up_score   = score[<size_t>(i - 1), j] + (gap_open if agap[<size_t>(i - 1), j] == zero else gap_extend)
             left_score = score[i, <size_t>(j - 1)] + (gap_open if agap[i, <size_t>(j - 1)] == zero else gap_extend)
             
-            if up_score >= diag_score:
-                agap[i, j] = one
+            if up_score > diag_score:
                 if up_score > left_score:
                     score[i, j]  = up_score
                     pointer[i, j] = UP
@@ -192,20 +189,19 @@ def global_align(object _seqj, object _seqi, int match=1,
                     score[i, j]   = left_score
                     pointer[i, j] = LEFT
             else:
-                if left_score >= diag_score:
+                if left_score > diag_score: # or (diag_score < 0 and i == max_i):
                     score[i, j] = left_score
                     pointer[i, j] = LEFT
-                    agap[i, j] = one
                 else:
                     score[i, j] = diag_score
                     pointer[i, j] = DIAG
-                    agap[i, j] = zero if tscore > 0 else one
+                    agap[i, j] = zero# if tscore > 0 else one
 
     seqlen = max_i + max_j
     ai = PyString_FromStringAndSize(NULL, seqlen)
     aj = PyString_FromStringAndSize(NULL, seqlen)
 
-    cdef int score_max = score.max()
+    cdef int score_max #, = score[:, -1].max()
 
     # had to use this and PyObject instead of assigning directly...
     align_j = PyString_AS_STRING(aj)
@@ -214,23 +210,32 @@ def global_align(object _seqj, object _seqi, int match=1,
     # here, the final pt could be a DIAG, even though it's not 
     # at the highest score... back track to get to the highest
     # score.
-    print i, j
-    #ib = i
-    #while score[i, j] != score_max and score[i, j] < score[i - 1, j]:
-        #    i -= 1
-        #if i == 0: i = ib
-    """
-    while score[i, j] != score_max and score[i, j - 1] > score[i, j]:
-        j -= 1
-    j += 2
-    """
-    """
-    if i == 0: 
-        i = ib
-    else:
-        while score[i, j] != score_max:
+    #######################################################
+    # so here, given 2 seqs:
+    # "AGEBANAN"
+    # "ACEBAN"
+    # the alignments:
+    # AGEBANN
+    # ACEBAN--
+    # and:
+    # AGEBANAN
+    # ACEB--AN
+    # score equally, but we assume that the former is preferred.
+    #######################################################
+    if max_j > max_i:
+        score_max = score[-1, :].max()
+        while score[i, j] < score_max:
             j -= 1
-            """
+            align_i[align_counter] = c"-"
+            align_j[align_counter] = seqj[j]
+            align_counter += 1
+    elif max_i > max_j:
+        score_max = score[:, -1].max()
+        while score[i, j] < score_max:
+            i -= 1
+            align_i[align_counter] = seqi[i]
+            align_j[align_counter] = c"-"
+            align_counter += 1
 
     p = pointer[i, j]
 
