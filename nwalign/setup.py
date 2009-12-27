@@ -15,7 +15,7 @@ setup(name='nwalign',
       version=version,
       description="Needleman-Wunsch global sequence alignment",
       long_description=doc,
-      ext_modules=[ Extension("cnwalign",
+      ext_modules=[ Extension("nwalign/cnwalign",
                       sources=["nwalign/cnwalign.c"],
                       include_dirs=[np_include, "nwalign"])],
       keywords='bioinformatics alignment needleman-wunsch',
@@ -28,8 +28,8 @@ setup(name='nwalign',
       include_package_data=True,
       zip_safe=False,
       packages=['nwalign'],
-      package_dir={'nwalign': 'nwalign'},
-      package_data = {'nwalign': ['*.pyx']},
+      #package_dir={'': 'nwalign'},
+      package_data = {'nwalign': ['*.pyx', "*.c"]},
       install_requires=[
           'numpy', 'cython'
       ],
@@ -48,5 +48,4 @@ setup(name='nwalign',
         'Topic :: Scientific/Engineering',
         'Topic :: Text Processing'
         ],
-
 )
