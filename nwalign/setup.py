@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from distutils.extension import Extension
 #from Cython.Distutils import build_ext
 
-version = '0.2.2'
+version = '0.3.0'
 import numpy
 np_include = numpy.get_include()
 try:
@@ -18,7 +18,7 @@ setup(name='nwalign',
       ext_modules=[ Extension("nwalign/cnwalign",
                       sources=["nwalign/cnwalign.c"],
                       include_dirs=[np_include, "nwalign"])],
-      keywords='bioinformatics alignment needleman-wunsch',
+      keywords='sequence bioinformatics alignment needleman-wunsch',
       url='http://bitbucket.org/brentp/biostuff/',
       #download_url='http://bitbucket.org/brentp/biostuff/get/tip.tar.gz',
       author='brentp',

@@ -11,10 +11,8 @@ This module provides a python module and a command-line interface to do global-
 sequence alignment using the `Needleman-Wunsch` algorithm. It uses `cython`_ 
 and numpy for speed.
 
-Example Command-Line Usage 
-==========================
-
-
+Command-Line Usage 
+==================
 the nwalign executable is installed to the PATH by setuptools
 ::
 
@@ -37,17 +35,39 @@ with specified penalties
     AS-FF
 
 
-Usage as a python module
-========================
+Python Usage
+============
+Alignment
+---------
 ::
 
     >>> import nwalign as nw
     >>> nw.global_align("CEELECANTH", "PELICAN", matrix='PAM250')
     ('CEELE-CANTH', '-PEL-ICAN--')
 
+    # with a specified penalty for open and extend.
+    >>> nw.global_align("CEELECANTH", "PELICAN", gap_open=-10, gap_extend=-4, matrix='PAM250')
+    ('CEELECANTH', '-PELICAN--')
 
-the matrix is specified as the full path to an `scoring matrix`_ as
+
+the `matrix` is specified as the full path to an `scoring matrix`_ as
 is distributed with the NCBI toolset.
+
+Scoring
+-------
+get the score of an alignment. (the first 2 args are from an alignment
+and must have the same length.
+::
+
+    >>> nw.score_alignment('CEELECANTH', '-PELICAN--', gap_open=-5,
+    ...                     gap_extend=-2, matrix='PAM250')
+    11
+
+    >>> nw.score_alignment('CEELE-CANTH', '-PEL-ICAN--', gap_open=-5,
+    ...                     gap_extend=-2, matrix='PAM250')
+    6
+
+
 """
 from cnwalign import global_align, global_align_no_matrix, score_alignment
 
