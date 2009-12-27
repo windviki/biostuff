@@ -72,67 +72,59 @@ def score_alignment(a, b, int gap_open, int gap_extend, matrix):
     cdef char *al = a
     cdef char *bl = b
     cdef size_t l = strlen(al), i 
-    cdef int score = 0
+    cdef int score = 0, this_score
     assert strlen(bl) == l, "alignment lengths must be the same"
     cdef np.ndarray[DTYPE_INT, ndim=2] mat
-    header, mat = read_matrix(matrix)
-    cdef char *sheader = header
+    mat = read_matrix(matrix)
 
     cdef bint gap_started = 0
 
     for i in range(l):
         if al[i] == c"-" or bl[i] == c"-":
-            #print "gap:", chr(al[i]), chr(bl[i]), gap_extend if gap_started else gap_open
             score += gap_extend if gap_started else gap_open
             gap_started = 1
         else:
-            jj = strpos(sheader, al[i])
-            ii = strpos(sheader, bl[i])
-            score += mat[ii, jj]
-            #print "mat:", chr(al[i]), chr(bl[i]), mat[ii, jj]
+            this_score = mat[al[i], bl[i]]
+            score += this_score
             gap_started = 0
     return score
 
 
-@cython.boundscheck(False)
 cdef read_matrix(path, dict cache={}):
+    """
+    so here, we read a matrix in the NCBI format and put
+    it into a numpy array. so the score for a 'C' changing
+    to an 'A' is stored in the matrix as:
+        mat[ord('C'), ord('A')] = score
+    as such, it's a direct array lookup from each pair in the alignment
+    to a score. this makes if very fast. the cost is in terms of space.
+    though it's usually less than 100*100.
+    """
     if path in cache: return cache[path]
     cdef np.ndarray[DTYPE_INT, ndim=2] a
-    #cdef np.ndarray[DTYPE_UINT, ndim=1] header
     cdef size_t ai = 0, i
-    cdef int v
+    cdef int v, mat_size
 
     fh = open(path)
     headers = None
     while headers is None:
         line = fh.readline().strip()
         if line[0] == '#': continue
-        headers = [x for x in line.split(' ') if x]
+        headers = [ord(x) for x in line.split(' ') if x]
+    mat_size = max(headers) + 1
+
+    a = np.zeros((mat_size, mat_size), dtype=np.int)
 
     line = fh.readline()
-    a = np.ndarray((len(headers), len(headers)), dtype=np.int)
-
     while line:
-        line = [int(x) for x in line[:-1].split(' ')[1:] if x]
-        for i in range(len(line)):
-            v = line[i]
-            a[ai, i] = v
+        line_vals = [int(x) for x in line[:-1].split(' ')[1:] if x]
+        for ohidx, val in zip(headers, line_vals):
+            a[headers[ai], ohidx] = val
         ai += 1
         line = fh.readline()
-    assert ai == len(headers), (ai, len(headers))
-    result = "".join(headers), a
-    cache[path] = result
-    return result
-
-
-cdef inline size_t strpos(char *tstr, char check):
-    cdef size_t i = 0
-    cdef size_t slen = strlen(tstr)
-    while i < slen:
-        if tstr[i] == check: return i
-        i += 1
-    return -1
-
+        
+    cache[path] = a
+    return a
 
 @cython.boundscheck(False)
 @cython.nonecheck(False)
@@ -167,9 +159,8 @@ def global_align(object _seqj, object _seqi, int match=1,
     cdef size_t i, j, seqlen, align_counter = 0, p
     cdef int diag_score, up_score, left_score, tscore
 
-    cdef char *align_j, *align_i, *sheader
+    cdef char *align_j, *align_i
     cdef char ci, cj
-    cdef size_t ii, jj
     cdef PyObject *ai, *aj
     cdef int zero=0, one=1
 
@@ -183,8 +174,7 @@ def global_align(object _seqj, object _seqi, int match=1,
     cdef np.ndarray[DTYPE_UINT, ndim=2] pointer = np.empty((max_i + 1, max_j + 1), dtype=np.uint)
     cdef np.ndarray[DTYPE_INT, ndim=2] amatrix
 
-    pyheader, amatrix = read_matrix(matrix)
-    sheader = pyheader
+    amatrix = read_matrix(matrix)
   
     pointer[0, 0] = NONE
     score[0, 0] = 0
@@ -199,20 +189,12 @@ def global_align(object _seqj, object _seqi, int match=1,
 
     for i in range(1, max_i + 1):
         ci = seqi[<size_t>(i - 1)]
-        ii = strpos(sheader, ci)
 
         agap_j[0] = zero
         for j in range(1, max_j + 1):
             agap_j[j] = one
             cj = seqj[<size_t>(j - 1)]
-            jj = strpos(sheader, cj)
-
-            if jj == -1 or ii ==  -1:
-                sys.stderr.write(chr(ci) + " or " + chr(cj) + " not in scoring matrix\n")
-                sys.stderr.write("using score of 0\n")
-                tscore = 0
-            else:
-                tscore = amatrix[ii, jj]
+            tscore = amatrix[ci, cj]
 
             diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + tscore
             up_score   = score[<size_t>(i - 1), j] + (gap_open if agap_i[<size_t>(i - 1)] == zero else gap_extend)
@@ -244,22 +226,6 @@ def global_align(object _seqj, object _seqi, int match=1,
     # had to use this and PyObject instead of assigning directly...
     align_j = PyString_AS_STRING(aj)
     align_i = PyString_AS_STRING(ai)
-
-    # here, the final pt could be a DIAG, even though it's not 
-    # at the highest score... back track to get to the highest
-    # score.
-    #######################################################
-    # so here, given 2 seqs:
-    # "AGEBANAN"
-    # "ACEBAN"
-    # the alignments:
-    # AGEBANN
-    # ACEBAN--
-    # and:
-    # AGEBANAN
-    # ACEB--AN
-    # score equally, but we assume that the former is preferred.
-    #######################################################
 
     p = pointer[i, j]
     while p != NONE:
@@ -313,7 +279,6 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
 
     cdef char *align_j, *align_i
     cdef char ci, cj
-    cdef size_t ii, jj
     cdef PyObject *ai, *aj
     cdef int zero=0, one=1
 

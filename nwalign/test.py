@@ -69,6 +69,13 @@ def test_raises():
     from nose.tools import assert_raises
     assert_raises(AssertionError, nw.global_align, a, b, gap_open=2)
 
+def test_bad_char():
+    a="tTAAT&"
+    b="TT"
+    r2 = nw.global_align(a, b, gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
+    print r2
+    assert r2 == 2
+
 if __name__ == "__main__":
     import nose
     nose.main()
