@@ -43,7 +43,7 @@ Usage as a python module
 
     >>> import nwalign as nw
     >>> nw.global_align("CEELECANTH", "PELICAN", matrix='PAM250')
-    ('CEELECANTH', '-PELICA--N')
+    ('CEELE-CANTH', '-PEL-ICAN--')
 
 
 the matrix is specified as the full path to an `scoring matrix`_ as
