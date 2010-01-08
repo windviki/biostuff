@@ -74,6 +74,16 @@ def test_bad_char():
     b="TT"
     r2 = nw.global_align(a, b, gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
 
+def test_no_string():
+    a = ""
+    b = "TT"
+    r2 = nw.global_align("", "TT", gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
+    r2 = nw.global_align("TT", "", gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
+    r2 = nw.global_align("", "", gap_extend=-10, gap_open=-20, matrix='BLOSUM62')
+    r2 = nw.global_align("", "TT", gap_extend=-10, gap_open=-20)
+    r2 = nw.global_align("TT", "", gap_extend=-10, gap_open=-20)
+    r2 = nw.global_align("", "", gap_extend=-10, gap_open=-20)
+
 if __name__ == "__main__":
     import nose
     nose.main()

@@ -106,15 +106,19 @@ def global_align(object _seqj, object _seqi, int match=1,
     cdef char* seqj = _seqj
     cdef char* seqi = _seqi
 
-    cdef size_t max_j = strlen(seqj)
-    cdef size_t max_i = strlen(seqi)
+    cdef size_t max_j = strlen(seqj) 
+    cdef size_t max_i = strlen(seqi) 
+    if max_i == max_j == 0:
+        return "", ""
+
+
     if max_j > max_i:
         flip = 1
         seqi, seqj = seqj, seqi
         max_i, max_j = max_j, max_i
 
-
-    cdef size_t i, j, seqlen, align_counter = 0, p
+    # need to initialize j for the case when it's a zero-length string.
+    cdef size_t i = 0, j = 0, seqlen, align_counter = 0, p
     cdef int diag_score, up_score, left_score, tscore
 
     cdef char *align_j, *align_i
@@ -173,7 +177,6 @@ def global_align(object _seqj, object _seqi, int match=1,
                     score[i, j] = diag_score
                     pointer[i, j] = DIAG
                     agap_i[i] = zero
-                    agap_j[j] = zero
 
     seqlen = max_i + max_j
     ai = PyString_FromStringAndSize(NULL, seqlen)
@@ -232,7 +235,9 @@ cpdef global_align_no_matrix(object _seqj, object _seqi, int match, int gap_open
 
     cdef size_t max_j = strlen(seqj)
     cdef size_t max_i = strlen(seqi)
-    cdef size_t i, j, seqlen, align_counter = 0, p
+    if max_i == max_j == 0:
+        return "", ""
+    cdef size_t i = 0, j = 0, seqlen, align_counter = 0, p
     cdef int diag_score, up_score, left_score
 
     cdef char *align_j, *align_i
