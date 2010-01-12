@@ -4,6 +4,7 @@ import collections
 import string
 import sys
 import optparse
+from cStringIO import StringIO
 
 
 def newnames(oldname, n, kmers=None, overlap=None, header=None):
@@ -104,53 +105,60 @@ def split(args):
     overlap = options.overlap if options.overlap != 0 else None
     f = Fasta(fasta)
     if options.header:
-        names = [(seqid, options.header % \
+        names = dict([(seqid, options.header % \
                       dict(fasta=f.fasta_name, seqid=seqid)) \
-                                       for seqid in f.keys()]
+                                       for seqid in f.keys()])
+        """
         if len(names) > 0:
             assert names[0][1] != names[1][1], ("problem with header format", options.header)
-        fhs = dict([(seqid, open(fn, 'wb')) for seqid, fn in names])
-        return with_header_names(f, fhs)
+        fhs = dict([(seqid, open(fn, 'wb')) for seqid, fn in names[:200]])
+        fhs.extend([(seqid, StringIO(), fn) for seqid, fn in names[200:]])
+        """
+        return with_header_names(f, names)
     else:
         names = newnames(fasta, options.nsplits, kmers=kmer, overlap=overlap, 
                      header=options.header)
 
-        fhs = [open(n, 'wb') for n in names]
+        #fhs = [open(n, 'wb') for n in names]
     if options.kmers == -1:
-        return without_kmers(f, fhs)
+        return without_kmers(f, names)
     else: 
-        return with_kmers(f, fhs, options.kmers, options.overlap)
+        return with_kmers(f, names, options.kmers, options.overlap)
 
-def with_header_names(f, fhs):
+def with_header_names(f, names):
     """
     split the fasta into the files in fhs by headers.
     """
-    for seqid, fh in fhs.iteritems():
+    for seqid, name in names.iteritems():
+        fh = open(name, 'wb')
         print >>fh, ">%s" % seqid
         print >>fh, str(f[seqid])
         fh.close()
 
-def with_kmers(f, fhs, k, overlap):
+def with_kmers(f, names, k, overlap):
     """
     split the sequences in Fasta object `f` into pieces of length `k` 
     with the given `overlap` the results are written to the array of files
     `fhs`
     """
+    fhs = [open(name, 'wb') for name in names]
     i = 0
     for seqid in f.keys():
         seq = f[seqid]
         for (start0, subseq) in Fasta.as_kmers(seq, k, overlap=overlap):
+
             fh = fhs[i % len(fhs)]
             print >>fh, ">%s" % format_kmer(seqid, start0)
             print >>fh, subseq
             i += 1
 
-def without_kmers(f, fhs):
+def without_kmers(f, names):
     """
     long crappy function that does not solve the bin-packing problem.
     but attempts to distribute the sequences in Fasta object `f` evenly
     among the file handles in fhs.
     """
+    fhs = [open(name, 'wb') for name in names]
     name2fh = dict([(fh.name, fh) for fh in fhs])
     items = sorted([(key, len(f[key])) for key in f.keys()], 
                    key=operator.itemgetter(1))
