@@ -1,4 +1,4 @@
-"""
+",""
 ------------------------------------------------------------------------------
 nwalign: fast `cython`_  - `Needleman-Wunsch`_ alignment
 ------------------------------------------------------------------------------
@@ -6,6 +6,7 @@ nwalign: fast `cython`_  - `Needleman-Wunsch`_ alignment
 .. _`Needleman-Wunsch`: http://en.wikipedia.org/wiki/Needleman-Wunsch_algorithm 
 .. _`scoring matrix`: http://en.wikipedia.org/wiki/Substitution_matrix
 .. _`cython`: http://cython.org
+.. _`here`: http://www.ncbi.nlm.nih.gov/IEB/ToolBox/C_DOC/lxr/source/data/
 
 This module provides a python module and a command-line interface to do global-
 sequence alignment using the `Needleman-Wunsch` algorithm. It uses `cython`_ 
@@ -51,7 +52,8 @@ Alignment
 
 
 the `matrix` is specified as the full path to an `scoring matrix`_ as
-is distributed with the NCBI toolset.
+is distributed with the NCBI toolset or directly `here`_
+via a simple 
 
 Scoring
 -------
