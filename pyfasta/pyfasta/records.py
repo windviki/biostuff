@@ -44,7 +44,9 @@ class FastaRecord(object):
         """
         f = fasta_obj.fasta_name
         if klass.is_current(f):
-            idx = cPickle.load(open(f + klass.idx))
+            fh = open(f + klass.idx)
+            idx = cPickle.load(fh)
+            fh.close()
             if flatten_inplace or ext_is_flat(f + klass.ext): flat = klass.modify_flat(f)
             else: flat = klass.modify_flat(f + klass.ext)
             if flatten_inplace and not ext_is_flat(f + klass.ext):
@@ -68,10 +70,14 @@ class FastaRecord(object):
             
         if flatten_inplace:
             klass.copy_inplace(flatfh.name, f)
-            cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
+            fh = open(f + klass.idx, 'wb')
+            cPickle.dump(idx, fh, -1)
+            fh.close()
             return idx, klass.modify_flat(f)
 
-        cPickle.dump(idx, open(f + klass.idx, 'wb'), -1)
+        fh = open(f + klass.idx, 'wb')
+        cPickle.dump(idx, fh, -1)
+        fh.close()
         return idx, klass.modify_flat(f + klass.ext)
 
     @classmethod
