@@ -55,6 +55,12 @@ def test_gap_open():
     assert r == r2
 
 
+def test_marcin():
+    r = nw.global_align('CPEL', 'PREK', gap_open=-6,
+gap_extend=-2, matrix='BLOSUM62')
+    assert r[0] == "CPEL"
+    assert r[1] == "PREK"
+
 def test_raises():
     a="TTAAT"
     b="TT"

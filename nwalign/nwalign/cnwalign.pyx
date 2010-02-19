@@ -161,16 +161,42 @@ def global_align(object _seqj, object _seqi, int match=1,
             diag_score = score[<size_t>(i - 1), <size_t>(j - 1)] + tscore
             up_score   = score[<size_t>(i - 1), j] + (gap_open if agap_i[<size_t>(i - 1)] == zero else gap_extend)
             left_score = score[i, <size_t>(j - 1)] + (gap_open if agap_j[<size_t>(j - 1)] == zero else gap_extend)
-            
-            if up_score >= diag_score: #checked.
+
+            """
+            fix cases where scores are tied.
+            choose diagonal when not at the ends of either string.
+            and choose up/left (gap) when at the end of the string.
+            this forces gaps to the ends of the aligments.
+            """
+            if diag_score == left_score:
+                # so here. if we're at the end we choose a gap.
+                # otherwise, we choose diag
+                if i == max_i or i == 1:
+                    score[i, j] = left_score
+                    pointer[i, j] = LEFT
+                else: # we want a diagonal
+                    score[i, j] = diag_score
+                    pointer[i, j] = DIAG
+                    agap_i[i] = zero
+            elif diag_score == up_score:
+                if j == max_j or j == 1:
+                    score[i, j] = up_score
+                    pointer[i, j] = UP
+                else: # we want a diagonal
+                    score[i, j] = diag_score
+                    pointer[i, j] = DIAG
+                    agap_i[i] = zero
+            # end of ambiguous score checks.
+
+            elif up_score > diag_score: #checked.
                 if up_score > left_score:
                     score[i, j]  = up_score
                     pointer[i, j] = UP
                 else:
                     score[i, j]   = left_score
                     pointer[i, j] = LEFT
-            else:
-                if left_score >= diag_score: # or (diag_score < 0 and i == max_i):
+            elif diag_score > up_score:
+                if left_score > diag_score:
                     score[i, j] = left_score
                     pointer[i, j] = LEFT
                 else:

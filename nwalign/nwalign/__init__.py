@@ -1,4 +1,4 @@
-",""
+"""
 ------------------------------------------------------------------------------
 nwalign: fast `cython`_  - `Needleman-Wunsch`_ alignment
 ------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ Alignment
 
     >>> import nwalign as nw
     >>> nw.global_align("CEELECANTH", "PELICAN", matrix='PAM250')
-    ('CEELE-CANTH', '-PEL-ICAN--')
+    ('CEELECANTH', '-PELICAN--')
 
     # with a specified penalty for open and extend.
     >>> nw.global_align("CEELECANTH", "PELICAN", gap_open=-10, gap_extend=-4, matrix='PAM250')

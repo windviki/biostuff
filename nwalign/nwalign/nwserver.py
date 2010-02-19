@@ -5,14 +5,13 @@ def main(port=1233):
     from __init__ import global_align
     import atexit
 
-    PORT = int(port)
     CHUNK = 32768 * 8
     HOST = 'localhost' 
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((HOST, PORT))
+    server.bind((HOST, int(port)))
     server.listen(4)
-    print "\nstarted server on %s:%i\n" % (HOST, PORT)
+    print "\nstarted server on %s:%i\n" % (HOST, int(port))
 
     def get_args(astr):
         kwargsab = astr.split(" ")
