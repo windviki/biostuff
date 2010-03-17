@@ -198,7 +198,7 @@ def check_array_copy(f):
     a = np.array(f['chr3'])
     old = f['chr3'][1:5]
     assert (a.shape[0] == 3600)
-    a[1:5] = np.array('N', dtype='c')
+    a[1:5] = np.array('N', dtype='S1')
     c = f['chr3'][1:5]
     assert c == old
 
