@@ -185,7 +185,7 @@ class NpyFastaRecord(FastaRecord):
 
     @classmethod
     def modify_flat(klass, flat_file):
-        mm = np.memmap(flat_file, dtype="S1", mode="r+")
+        mm = np.memmap(flat_file, dtype="S1", mode="r")
         return mm
 
     def getdata(self, islice):
