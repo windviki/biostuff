@@ -1,5 +1,9 @@
 Changes
 =======
+0.3.9
+-----
+* only require 'r' (not r+) for memory map.
+
 0.3.8
 -----
 * clean up logic for mixing inplace/non-inplace flattened files.

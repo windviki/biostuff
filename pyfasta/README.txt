@@ -76,7 +76,7 @@ get back an array directly...
 mask a sub-sequence
 ::
 
-    >>> a[11:13] = np.array('N', dtype='c')
+    >>> a[11:13] = np.array('N', dtype='S1')
     >>> a[10:14].tostring()
     'ANNA'
 
